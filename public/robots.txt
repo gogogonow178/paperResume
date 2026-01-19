@@ -1,0 +1,6 @@
+# SEO - Allow all crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://minicv.xyz/sitemap.xml
