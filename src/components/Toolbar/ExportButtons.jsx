@@ -38,22 +38,24 @@ function ExportButtons() {
             const safeName = (resumeData.basicInfo.name || 'resume').trim().replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_')
             saveAs(blob, `${safeName}_简历.pdf`)
 
-            setProgressText('导出成功！')
-            setTimeout(() => setProgressText(''), 1500)
+            setProgressText('✅ ATS 友好版')
+            alert('✅ 导出成功！\n\n类型：ATS 友好版（真文字 PDF）\n特点：文字可选中、可搜索，招聘系统可正确解析')
         } catch (error) {
             console.error(error)
             // 如果 API 失败，回退到截图方案
-            setProgressText('API 失败，使用备用方案...')
+            setProgressText('使用备用方案...')
             try {
                 const resumeData = useResumeStore.getState()
                 await exportToPdfImage(resumeData, (msg) => setProgressText(msg))
+                setProgressText('📷 图片版')
+                alert('⚠️ 导出成功！\n\n类型：图片版 PDF（截图方案）\n注意：文字不可选中，招聘系统可能无法解析\n\n原因：服务器 API 暂时不可用')
             } catch (fallbackError) {
                 console.error(fallbackError)
                 alert('导出失败，请重试')
             }
         } finally {
             setIsExporting(false)
-            setTimeout(() => setProgressText(''), 500)
+            setTimeout(() => setProgressText(''), 3000)
         }
     }
 
