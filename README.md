@@ -34,7 +34,8 @@
 
 ## 🖥️ 预览
 
-![极简简历预览](https://via.placeholder.com/800x500/F5F5F7/1D1D1F?text=极简简历+MiniCV)
+<img width="1470" height="802" alt="image" src="https://github.com/user-attachments/assets/9c55adb6-9eb1-4cf5-9228-de7b6b5b4208" />
+
 
 ## 🚀 快速开始
 
