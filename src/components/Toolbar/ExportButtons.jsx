@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import useResumeStore from '../../store/useResumeStore'
-import { exportToPdf, exportToImage } from '../../utils/exportPdf'
+import { exportToPdfImage, exportToImage } from '../../utils/exportPdf.jsx'
+import { saveAs } from 'file-saver'
 
 /**
  * ExportButtons - 导出按钮组
@@ -10,28 +11,49 @@ function ExportButtons() {
     const [progressText, setProgressText] = useState('')
     const basicInfo = useResumeStore((state) => state.basicInfo)
 
-    // 导出 PDF
+    // 导出 PDF（调用 Serverless API 生成 ATS 友好 PDF）
     const handleExportPdf = async () => {
         if (isExporting) return
         setIsExporting(true)
-        setProgressText('准备中...')
+        setProgressText('正在生成 PDF...')
 
         try {
             // 获取最新数据
             const resumeData = useResumeStore.getState()
 
-            // 让出一帧给 UI 渲染
-            await new Promise(resolve => requestAnimationFrame(resolve))
-
-            await exportToPdf(resumeData, (msg) => {
-                setProgressText(msg)
+            // 调用 Vercel Serverless API
+            const response = await fetch('/api/generate-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(resumeData)
             })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.error || '服务器错误')
+            }
+
+            setProgressText('正在下载...')
+            const blob = await response.blob()
+            const safeName = (resumeData.basicInfo.name || 'resume').trim().replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_')
+            saveAs(blob, `${safeName}_简历.pdf`)
+
+            setProgressText('导出成功！')
+            setTimeout(() => setProgressText(''), 1500)
         } catch (error) {
             console.error(error)
-            alert('导出出错，请重试')
+            // 如果 API 失败，回退到截图方案
+            setProgressText('API 失败，使用备用方案...')
+            try {
+                const resumeData = useResumeStore.getState()
+                await exportToPdfImage(resumeData, (msg) => setProgressText(msg))
+            } catch (fallbackError) {
+                console.error(fallbackError)
+                alert('导出失败，请重试')
+            }
         } finally {
             setIsExporting(false)
-            setProgressText('')
+            setTimeout(() => setProgressText(''), 500)
         }
     }
 
