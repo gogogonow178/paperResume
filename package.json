@@ -2,6 +2,26 @@
   "name": "paper-resume",
   "private": true,
   "version": "1.0.0",
+  "description": "A minimalist, privacy-focused resume builder built with React and Tailwind CSS. Free, local-first, and exportable to PDF. 极简简历生成器，无后端，隐私安全。",
+  "keywords": [
+    "resume-builder",
+    "resume",
+    "cv-maker",
+    "react",
+    "vite",
+    "zustand",
+    "privacy-first",
+    "tailwind-css",
+    "简历生成器",
+    "在线简历",
+    "简历模版",
+    "写简历"
+  ],
+  "homepage": "https://www.minicv.xyz/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gogogonow178/paperResume.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
