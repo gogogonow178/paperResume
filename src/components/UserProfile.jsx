@@ -26,7 +26,7 @@ export default function UserProfile() {
         if (isHovering && triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect()
             setDropdownPosition({
-                top: rect.bottom + 12,
+                top: rect.bottom + 6, // 稍微往上提一点 (原 +12)
                 right: window.innerWidth - rect.right
             })
         }
@@ -215,7 +215,13 @@ export default function UserProfile() {
         return `用户 ${user.id.slice(0, 4)}`
     }, [user])
 
-    // ... (中间代码省略) ...
+    // 绑定邮箱的伪逻辑 (占位)
+    const handleBindEmail = () => {
+        const email = prompt('请输入要绑定的邮箱：')
+        if (email) {
+            alert(`正在为 ${email} 发送验证邮件... (功能开发中)`)
+        }
+    }
 
     const DropdownContent = (
         <div
@@ -223,11 +229,32 @@ export default function UserProfile() {
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            <div style={styles.card}>
+            <div style={{
+                ...styles.card,
+                boxShadow: '0 16px 60px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.05)' // 加深阴影，提升层次感防止“融为一体”
+            }}>
                 {/* Header: User Info */}
                 <div style={styles.header}>
                     <p style={styles.email} title={displayName}>{displayName}</p>
-                    {/* 移除 '个人免费版'，如果未来有会员逻辑再加回 */}
+
+                    {!user.email ? (
+                        <button
+                            onClick={handleBindEmail}
+                            style={{
+                                fontSize: '12px',
+                                color: '#2563eb',
+                                border: 'none',
+                                background: 'none',
+                                padding: 0,
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                            }}
+                        >
+                            + 绑定邮箱
+                        </button>
+                    ) : (
+                        <p style={{ fontSize: '12px', color: '#888' }}>{user.email}</p>
+                    )}
                 </div>
 
                 {/* List Menu */}
