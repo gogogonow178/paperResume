@@ -1,4 +1,6 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import AuthModal from '../AuthModal'
 
 /**
  * RichTextEditor - 简历专用文本编辑器
@@ -119,6 +121,62 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
         }
     }
 
+    // ----------------------------------------------------------------
+    // AI 润色逻辑
+    // ----------------------------------------------------------------
+    const { user, session, refreshProfile } = useAuth && useAuth() || {} // Fail safe if context missing
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+    const [isPolishing, setIsPolishing] = useState(false)
+
+    const handlePolish = async () => {
+        const textToPolish = value || ''
+        if (!textToPolish.trim()) return
+
+        // 1. 检查登录
+        if (!user) {
+            setIsAuthModalOpen(true)
+            return
+        }
+
+        // 2. 开始润色
+        setIsPolishing(true)
+        try {
+            const res = await fetch('/api/polish', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({ text: textToPolish })
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                // 如果是额度不足 (403)，提示用户
+                if (res.status === 403) {
+                    alert('您的免费额度已用完，请关注后续付费计划！')
+                } else {
+                    throw new Error(data.error || '请求失败')
+                }
+                return
+            }
+
+            // 3. 成功回填
+            if (data.result) {
+                onChange(data.result)
+                // 刷新余额
+                if (refreshProfile) refreshProfile()
+            }
+
+        } catch (error) {
+            console.error('Polish error:', error)
+            alert('润色失败，请稍后重试: ' + error.message)
+        } finally {
+            setIsPolishing(false)
+        }
+    }
+
     // 工具栏按钮配置 - 使用清晰的 SVG 图标
     const tools = [
         {
@@ -178,6 +236,16 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
 
     return (
         <div className="rich-text-editor">
+            <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={() => setIsAuthModalOpen(false)}
+                onSuccess={() => {
+                    setIsAuthModalOpen(false)
+                    // 登录成功后自动开始润色 (UX 优化)
+                    handlePolish()
+                }}
+            />
+
             {/* 工具栏 */}
             <div
                 style={{
@@ -189,6 +257,51 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
                     borderRadius: '10px 10px 0 0',
                 }}
             >
+                {/* AI 润色按钮 (高亮显示) */}
+                <button
+                    type="button"
+                    onClick={handlePolish}
+                    disabled={isPolishing || !value}
+                    className="group"
+                    style={{
+                        height: '28px',
+                        padding: '0 10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                        border: 'none',
+                        borderRadius: '6px',
+                        color: 'white',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: isPolishing || !value ? 'not-allowed' : 'pointer',
+                        opacity: isPolishing || !value ? 0.7 : 1,
+                        marginRight: '8px',
+                        boxShadow: '0 2px 10px rgba(99, 102, 241, 0.3)',
+                        transition: 'all 0.2s',
+                    }}
+                >
+                    {isPolishing ? (
+                        <>
+                            <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            思考中...
+                        </>
+                    ) : (
+                        <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                            </svg>
+                            AI 润色
+                        </>
+                    )}
+                </button>
+
+                <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.2)', margin: '0 8px' }} />
+
                 {tools.map((tool, idx) =>
                     tool.type === 'divider' ? (
                         <div

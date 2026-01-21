@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import useResumeStore from '../../store/useResumeStore'
-import { exportToPdfImage, exportToImage } from '../../utils/exportPdf.jsx'
-import { saveAs } from 'file-saver'
+import { exportToPdf, exportToImage } from '../../utils/exportPdf.jsx'
 
 /**
  * ExportButtons - 导出按钮组
@@ -11,48 +10,18 @@ function ExportButtons() {
     const [progressText, setProgressText] = useState('')
     const basicInfo = useResumeStore((state) => state.basicInfo)
 
-    // 导出 PDF（调用 Serverless API 生成 ATS 友好 PDF）
+    // 导出 PDF（截图方案）
     const handleExportPdf = async () => {
         if (isExporting) return
         setIsExporting(true)
         setProgressText('正在生成 PDF...')
 
         try {
-            // 获取最新数据
             const resumeData = useResumeStore.getState()
-
-            // 调用 Vercel Serverless API
-            const response = await fetch('/api/generate-pdf', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(resumeData)
-            })
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}))
-                throw new Error(errorData.error || '服务器错误')
-            }
-
-            setProgressText('正在下载...')
-            const blob = await response.blob()
-            const safeName = (resumeData.basicInfo.name || 'resume').trim().replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_')
-            saveAs(blob, `${safeName}_简历.pdf`)
-
-            setProgressText('✅ ATS 友好版')
-            alert('✅ 导出成功！\n\n类型：ATS 友好版（真文字 PDF）\n特点：文字可选中、可搜索，招聘系统可正确解析')
+            await exportToPdf(resumeData, (msg) => setProgressText(msg))
         } catch (error) {
             console.error(error)
-            // 如果 API 失败，回退到截图方案
-            setProgressText('使用备用方案...')
-            try {
-                const resumeData = useResumeStore.getState()
-                await exportToPdfImage(resumeData, (msg) => setProgressText(msg))
-                setProgressText('📷 图片版')
-                alert('⚠️ 导出成功！\n\n类型：图片版 PDF（截图方案）\n注意：文字不可选中，招聘系统可能无法解析\n\n原因：服务器 API 暂时不可用')
-            } catch (fallbackError) {
-                console.error(fallbackError)
-                alert('导出失败，请重试')
-            }
+            alert('导出失败，请重试')
         } finally {
             setIsExporting(false)
             setTimeout(() => setProgressText(''), 3000)

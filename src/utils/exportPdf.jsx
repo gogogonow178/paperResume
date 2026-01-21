@@ -1,6 +1,3 @@
-import { pdf } from '@react-pdf/renderer'
-import ResumePDF from '../components/ResumePDF/ResumePDF'
-import { saveAs } from 'file-saver'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import JSZip from 'jszip'
@@ -20,49 +17,12 @@ function sanitizeFileName(name) {
 }
 
 /**
- * 导出 PDF - ATS 友好版 (@react-pdf/renderer)
- * 
- * 优点：
- * - 真 PDF，文字可选中
- * - 声明式 UI
- * - 中文支持 (需字体)
- */
-export async function exportToPdf(data, onProgress) {
-    try {
-        onProgress?.('准备生成...')
-
-        let resumeData = data
-        if (!resumeData || !resumeData.basicInfo) {
-            resumeData = useResumeStore.getState()
-        }
-
-        const safeName = sanitizeFileName(resumeData.basicInfo.name)
-        const fileName = `${safeName}_简历.pdf`
-
-        // 延迟加载字体和渲染
-        onProgress?.('正在排版...')
-        await new Promise(r => setTimeout(r, 100))
-
-        const blob = await pdf(<ResumePDF data={resumeData} />).toBlob()
-
-        onProgress?.('正在保存...')
-        saveAs(blob, fileName)
-        onProgress?.('导出完成')
-
-    } catch (error) {
-        console.error('PDF Export Failed', error)
-        alert('导出失败: ' + error.message)
-    }
-}
-
-/**
- * 导出 PDF - 高清图片版（备用方案）
+ * 导出 PDF - 高清图片版
  * 
  * 使用 html2canvas 截图方案
  * 优点：排版精确、中文支持完美、一键导出
- * 缺点：文字不可选中（非 ATS 友好）
  */
-export async function exportToPdfImage(data, onProgress) {
+export async function exportToPdf(data, onProgress) {
     const container = document.getElementById('resume-preview')
     if (!container) return
 
