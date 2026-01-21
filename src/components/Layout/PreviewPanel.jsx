@@ -1,5 +1,6 @@
 import ResumePage from '../Preview/ResumePage'
 import ExportButtons from '../Toolbar/ExportButtons'
+import UserProfile from '../../UserProfile'
 
 /**
  * PreviewPanel - 右侧预览区容器
@@ -16,12 +17,16 @@ function PreviewPanel() {
                 style={{
                     padding: '14px 24px'
                 }}>
-                <div className="flex items-center justify-end gap-3" style={{ maxWidth: '210mm', margin: '0 auto' }}>
-                    <span className="text-xs mr-auto flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+                <div className="flex items-center justify-between" style={{ maxWidth: '210mm', margin: '0 auto' }}>
+                    <span className="text-xs flex items-center gap-1.5" style={{ color: 'var(--color-text-secondary)' }}>
                         <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                         实时预览
                     </span>
-                    <ExportButtons />
+                    <div className="flex items-center gap-3">
+                        <ExportButtons />
+                        <div className="w-px h-5 bg-gray-300 mx-1"></div>
+                        <UserProfile />
+                    </div>
                 </div>
             </header>
 
@@ -29,7 +34,7 @@ function PreviewPanel() {
             <div className="py-6">
                 <ResumePage />
             </div>
-        </main>
+        </main >
     )
 }
 
