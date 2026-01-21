@@ -94,16 +94,18 @@ export default async function handler(req, res) {
 
         const polishedText = completion.choices[0].message.content
 
-        // 5. Log usage (Async, don't await blocking)
-        supabase.from('usage_logs').insert({
+        // 5. Log usage (Must await in Serverless environment)
+        const { error: logError } = await supabase.from('usage_logs').insert({
             user_id: user.id,
             feature: 'resume_polish',
             input_tokens: completion.usage?.prompt_tokens,
             output_tokens: completion.usage?.completion_tokens,
             model: model
-        }).then(({ error }) => {
-            if (error) console.error('Logging error:', error)
         })
+
+        if (logError) {
+            console.error('Logging error:', logError)
+        }
 
         // 6. Return success
         return res.status(200).json({
