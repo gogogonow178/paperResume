@@ -57,9 +57,22 @@ export default function UserProfile() {
             <>
                 <button
                     onClick={() => setIsAuthModalOpen(true)}
-                    className="px-6 py-2 bg-[#000000] text-white rounded-full text-[13px] font-bold tracking-wide shadow-md hover:shadow-lg hover:bg-gray-900 hover:scale-[1.03] active:scale-95 transition-all duration-300 ease-out"
+                    className="
+                        group relative overflow-hidden
+                        flex items-center gap-2 
+                        px-5 py-2.5 
+                        bg-white hover:bg-gray-50
+                        text-gray-900 text-[13px] font-bold tracking-wide
+                        rounded-xl
+                        border border-gray-200/80
+                        shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]
+                        transition-all duration-300 ease-out
+                        active:scale-[0.98]
+                    "
                 >
-                    登录
+                    <div className="w-1.5 h-1.5 rounded-full bg-black group-hover:scale-110 transition-transform duration-300"></div>
+                    登录账户
+                    <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-black/5 pointer-events-none"></div>
                 </button>
                 {/* 动态加载 AuthModal 以避免循环依赖或未加载问题 */}
                 {isAuthModalOpen && <AuthModalWrapper isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />}
