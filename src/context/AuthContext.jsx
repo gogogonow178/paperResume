@@ -59,24 +59,27 @@ export function AuthProvider({ children }) {
                 .single()
 
             if (error) {
-                // Supabase .single() 如果找不到数据会返回 406 / PGRST116 错误
+                // 如果是“查不到数据” (PGRST116)，说明触发器可能挂了。
+                // 我们在前端补救：手动插入一条初始化记录。
                 if (error.code === 'PGRST116' || error.message?.includes('JSON object requested, but 0 rows were returned')) {
-                    console.warn('User deleted in database. Forcing logout.')
-                    await supabase.auth.signOut()
-                    setUser(null)
-                    setSession(null)
-                    setUserProfile(null)
-                    window.location.reload() // 彻底重置
+                    console.warn('Profile missing. Attempting lazy initialization...')
+
+                    const { error: insertError } = await supabase.from('users').insert({
+                        id: userId,
+                        email: supabase.auth.user()?.email || 'user', // 尝试获取 email，虽不严谨但够用
+                        credits: 5
+                    })
+
+                    if (insertError) {
+                        console.error('Lazy init failed:', insertError)
+                    } else {
+                        // 插入成功，重试读取
+                        console.log('Lazy init success. Retrying fetch...')
+                        return fetchUserProfile(userId)
+                    }
                 } else {
                     console.error('Error fetching user profile:', error)
                 }
-            } else if (!data) {
-                console.warn('Empty profile data. Forcing logout.')
-                await supabase.auth.signOut()
-                setUser(null)
-                setSession(null)
-                setUserProfile(null)
-                window.location.reload() // 彻底重置
             } else {
                 setUserProfile(data)
             }
