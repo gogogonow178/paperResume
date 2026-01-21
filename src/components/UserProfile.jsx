@@ -79,11 +79,10 @@ export default function UserProfile() {
                 />
             </div>
 
-            {/* Dropdown - 使用 Fixed 彻底逃离所有容器的 Clipping */}
-            {/* top-70px (Header ~68px)  right-6 (Padding 24px) */}
+            {/* Dropdown - 改回 Absolute 但配合父容器 overflow: visible */}
             <div
                 className={`
-                    fixed top-[70px] right-6 z-[999999] w-64 pt-2 transition-all duration-200
+                    absolute top-10 right-0 z-[100] w-64 pt-2 transition-all duration-200
                     ${isHovering ? 'opacity-100 translate-y-0 visible' : 'opacity-0 -translate-y-2 invisible'}
                 `}
                 onMouseEnter={() => setIsHovering(true)}
@@ -137,6 +136,5 @@ export default function UserProfile() {
 // 简单的 Wrapper 避免 import 循环，或者直接 import AuthModal (如果 AuthModal 是 default export)
 import AuthModal from './AuthModal'
 function AuthModalWrapper({ isOpen, onClose }) {
-    return <AuthModal isOpen={isOpen} onClose={onClose} onSuccess={() => window.location.reload()} />
-    // onSuccess 刷新页面以确保状态更新，或者 AuthContext 会自动处理
+    return <AuthModal isOpen={isOpen} onClose={onClose} />
 }
