@@ -29,7 +29,7 @@ function App() {
 
     // 桌面端双栏布局
     return (
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-screen">
             {/* 左侧编辑区 */}
             <EditorPanel />
 
