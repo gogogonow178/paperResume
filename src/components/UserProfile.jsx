@@ -65,7 +65,7 @@ export default function UserProfile() {
             {/* Dropdown Container - 紧贴头像，防止鼠标划过间隙时消失 */}
             <div
                 className={`
-                    absolute top-9 right-0 pt-4 w-64 origin-top-right transition-all duration-200
+                    absolute top-9 right-0 pt-2 w-64 origin-top-right transition-all duration-200
                     ${isHovering ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}
                 `}
             >
