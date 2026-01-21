@@ -8,13 +8,4 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  server: {
-    proxy: {
-      '/api': {
-        target: 'https://paper-resume-git-feature-serverless-pdf-binghanlius-projects.vercel.app',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
 })
