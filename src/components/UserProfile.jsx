@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function UserProfile() {
@@ -42,7 +43,6 @@ export default function UserProfile() {
     // 使用 DiceBear 'bottts' (机器人) 风格，可爱且完全中性，不区分性别
     const avatarUrl = useMemo(() => {
         const seed = user.email || 'user'
-        // bottts 是可爱的小机器人，色彩丰富且无性别特征
         return `https://api.dicebear.com/9.x/bottts/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`
     }, [user.email])
 
@@ -50,80 +50,122 @@ export default function UserProfile() {
 
     const handlePurchase = () => {
         alert('【模拟充值】\n\n请扫描屏幕上的二维码进行支付...\n(支付成功后积分将增加)')
-        // 模拟充值成功
         setTimeout(() => {
             if (confirm('模拟：支付成功了吗？')) {
-                refreshProfile() // 实际应该由后端 webhook 触发，这里手动刷新演示
+                refreshProfile()
             }
         }, 1000)
     }
 
+    // Portal 定位逻辑
+    const [coords, setCoords] = useState({ top: 0, left: 0 })
+    const avatarRef = useRef(null)
+
+    const updateCoords = () => {
+        if (avatarRef.current) {
+            const rect = avatarRef.current.getBoundingClientRect()
+            setCoords({
+                top: rect.bottom + 10, // 头像下方 10px
+                left: rect.right - 256, // 右对齐 (Dropdown 宽度 256px / w-64)
+            })
+        }
+    }
+
+    useEffect(() => {
+        if (isHovering) {
+            updateCoords()
+            window.addEventListener('scroll', updateCoords)
+            window.addEventListener('resize', updateCoords)
+        }
+        return () => {
+            window.removeEventListener('scroll', updateCoords)
+            window.removeEventListener('resize', updateCoords)
+        }
+    }, [isHovering])
+
     return (
-        <div
-            className="relative z-50 flex flex-col items-center"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-        >
-            {/* Avatar - Image based */}
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-lg cursor-pointer border-2 border-white transform transition hover:scale-105 overflow-hidden">
-                <img
-                    src={avatarUrl}
-                    alt="User Avatar"
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                />
+        <>
+            <div
+                className="relative z-50 flex flex-col items-center"
+                onMouseEnter={() => {
+                    updateCoords()
+                    setIsHovering(true)
+                }}
+                onMouseLeave={(e) => {
+                    // 检查鼠标是否移向了 Portal 内容 (虽然有点难，更简单的是给 Portal 也加 mouse enter/leave)
+                    // 但 Portal 在 body，React 事件冒泡依然有效！
+                    // 只要 Portal 也是 UserProfile 组件的一部分。
+                    setIsHovering(false)
+                }}
+                ref={avatarRef}
+            >
+                {/* Avatar - Image based */}
+                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-lg cursor-pointer border-2 border-white transform transition hover:scale-105 overflow-hidden active:scale-95">
+                    <img
+                        src={avatarUrl}
+                        alt="User Avatar"
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                    />
+                </div>
             </div>
 
-            {/* Dropdown Container - 紧贴头像，防止鼠标划过间隙时消失 */}
-            <div
-                className={`
-                    absolute top-9 right-0 pt-2 w-64 origin-top-right transition-all duration-200
-                    ${isHovering ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}
-                `}
-            >
-                {/* 实际的卡片内容 - 在这里应用背景和阴影 */}
-                <div className="bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
-                    {/* Header */}
-                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
-                        <p className="text-xs text-gray-500 font-medium">当前账号</p>
-                        <p className="text-sm font-bold text-gray-800 truncate" title={user.email}>{user.email}</p>
-                    </div>
+            {/* Portal Dropdown */}
+            {isHovering && createPortal(
+                <div
+                    className="fixed z-[9999] pt-2"
+                    style={{
+                        top: coords.top,
+                        left: coords.left,
+                        width: '256px' // w-64
+                    }}
+                    onMouseEnter={() => setIsHovering(true)}
+                    onMouseLeave={() => setIsHovering(false)}
+                >
+                    <div className="bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
+                            <p className="text-xs text-gray-500 font-medium">当前账号</p>
+                            <p className="text-sm font-bold text-gray-800 truncate" title={user.email}>{user.email}</p>
+                        </div>
 
-                    {/* Credits */}
-                    <div className="px-4 py-4 text-center">
-                        <p className="text-xs text-gray-500 mb-1">剩余润色次数</p>
-                        <div className="flex items-center justify-center gap-2 mb-3">
-                            <span className="text-3xl font-black text-indigo-600 font-mono">{credits}</span>
+                        {/* Credits */}
+                        <div className="px-4 py-4 text-center">
+                            <p className="text-xs text-gray-500 mb-1">剩余润色次数</p>
+                            <div className="flex items-center justify-center gap-2 mb-3">
+                                <span className="text-3xl font-black text-indigo-600 font-mono">{credits}</span>
+                                <button
+                                    onClick={refreshProfile}
+                                    className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-indigo-500 transition"
+                                    title="刷新余额"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                </button>
+                            </div>
+
                             <button
-                                onClick={refreshProfile}
-                                className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-indigo-500 transition"
-                                title="刷新余额"
+                                onClick={handlePurchase}
+                                className="w-full py-2 bg-black text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition transform hover:scale-[1.02] active:scale-95"
                             >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                购买次数
                             </button>
                         </div>
 
-                        <button
-                            onClick={handlePurchase}
-                            className="w-full py-2 bg-black text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition transform hover:scale-[1.02] active:scale-95"
-                        >
-                            购买次数
-                        </button>
+                        {/* Footer */}
+                        <div className="border-t border-gray-100">
+                            <button
+                                onClick={signOut}
+                                className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition flex items-center gap-2"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                退出登录
+                            </button>
+                        </div>
                     </div>
-
-                    {/* Footer */}
-                    <div className="border-t border-gray-100">
-                        <button
-                            onClick={signOut}
-                            className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition flex items-center gap-2"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                            退出登录
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+                </div>,
+                document.body
+            )}
+        </>
     )
 }
 
