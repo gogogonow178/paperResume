@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 
 export default function UserProfile() {
@@ -38,7 +38,14 @@ export default function UserProfile() {
     }
 
     // 已登录：显示头像
-    const initial = user.email ? user.email[0].toUpperCase() : 'U'
+    // 已登录：显示头像
+    // 使用 DiceBear 'bottts' (机器人) 风格，可爱且完全中性，不区分性别
+    const avatarUrl = useMemo(() => {
+        const seed = user.email || 'user'
+        // bottts 是可爱的小机器人，色彩丰富且无性别特征
+        return `https://api.dicebear.com/9.x/bottts/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`
+    }, [user.email])
+
     const credits = userProfile?.credits ?? '-'
 
     const handlePurchase = () => {
@@ -57,9 +64,14 @@ export default function UserProfile() {
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
         >
-            {/*Avatar*/}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg cursor-pointer border-2 border-white transform transition hover:scale-105">
-                {initial}
+            {/* Avatar - Image based */}
+            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-lg cursor-pointer border-2 border-white transform transition hover:scale-105 overflow-hidden">
+                <img
+                    src={avatarUrl}
+                    alt="User Avatar"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                />
             </div>
 
             {/* Dropdown Container - 紧贴头像，防止鼠标划过间隙时消失 */}
