@@ -23,6 +23,23 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState(null)
     const { signInWithEmail, verifyEmailOtp } = useAuth()
+    const OTP_COOLDOWN_KEY = 'auth_otp_cooldown_timestamp'
+
+    // 初始化时检查 localStorage 恢复倒计时
+    useEffect(() => {
+        const cooldownEnd = localStorage.getItem(OTP_COOLDOWN_KEY)
+        if (cooldownEnd) {
+            const remaining = Math.ceil((parseInt(cooldownEnd) - Date.now()) / 1000)
+            if (remaining > 0) {
+                setTimer(remaining)
+                // 如果在倒计时中，可能用户刷新了页面，恢复到 otp 界面
+                // 但为了保险（因为可能没有 email），这步可以省略，或者只恢复计时器逻辑
+                // 如果想体验更好，可以把 email 也存一下，这里暂只恢复 timer 避免逻辑太复杂
+            } else {
+                localStorage.removeItem(OTP_COOLDOWN_KEY)
+            }
+        }
+    }, [])
 
     // 防止滚动穿透
     useEffect(() => {
@@ -58,31 +75,34 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
             return
         }
 
-        // 2. 乐观更新：如果不等待直接跳转，用户体验极佳
-        // 先设为 loading 避免重复提交（虽然切界面了也点不到）
         setLoading(true)
+        setMessage(null)
 
-        // 立即跳转进入 OTP 界面 (Optimistic UI)
-        setStep('otp')
-        setOtp('')
-        setTimer(60)
-        setMessage({ type: 'success', text: '正在发送验证码...' }) // 初始提示
-
-        // 3. 后台异步发送
         try {
-            // 稍微延迟一点点，让界面先渲染出来，避免卡顿
-            await new Promise(resolve => setTimeout(resolve, 50))
-
+            // 真实发送请求，等待结果
             const { error } = await signInWithEmail(email)
             if (error) throw error
 
-            // 发送成功
+            // --- 发送成功后才执行 ---
+
+            // 1. 设置冷却时间
+            localStorage.setItem(OTP_COOLDOWN_KEY, (Date.now() + 60000).toString())
+
+            // 2. 跳转界面并开始倒计时
+            setStep('otp')
+            setOtp('')
+            setTimer(60)
             setMessage({ type: 'success', text: '验证码已发送，请查收' })
+
         } catch (error) {
-            // 发送失败处理
             console.error('Send OTP error:', error)
-            setMessage({ type: 'error', text: error.message || '发送失败，请稍后重试' })
-            setTimer(0) // 允许立即重试
+
+            if (error.status === 429 || error.message?.includes('Too many requests')) {
+                setMessage({ type: 'error', text: '发送太频繁，请稍后再试' })
+            } else {
+                setMessage({ type: 'error', text: error.message || '发送失败，请检查邮箱或稍后重试' })
+            }
+            // 失败时什么都不做，停留在邮箱输入页供用户重试
         } finally {
             setLoading(false)
         }
@@ -96,8 +116,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
             if (error) throw error
             setMessage({ type: 'success', text: '验证码已重新发送' })
             setTimer(60) // 重置倒计时
+            localStorage.setItem(OTP_COOLDOWN_KEY, (Date.now() + 60000).toString())
         } catch (error) {
-            setMessage({ type: 'error', text: error.message || '重发失败' })
+            if (error.status === 429 || error.message?.includes('Too many requests')) {
+                setMessage({ type: 'error', text: '发送太频繁，请稍后再试' })
+            } else {
+                setMessage({ type: 'error', text: error.message || '重发失败' })
+            }
         } finally {
             setLoading(false)
         }
