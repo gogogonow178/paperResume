@@ -204,6 +204,36 @@ export default function UserProfile() {
         setIsRefreshing(false)
     }
 
+    // 头像种子状态 (支持从 LocalStorage 读取，实现轻量级持久化)
+    const [avatarSeed, setAvatarSeed] = useState(() => {
+        if (!user) return ''
+        return localStorage.getItem(`avatar_seed_${user.id}`) || user.email || user.id
+    })
+
+    // 监听用户变化，重置种子
+    useEffect(() => {
+        if (user) {
+            const savedSeed = localStorage.getItem(`avatar_seed_${user.id}`)
+            setAvatarSeed(savedSeed || user.email || user.id)
+        }
+    }, [user])
+
+    // 切换头像
+    const handleChangeAvatar = () => {
+        const newSeed = Math.random().toString(36).substring(7)
+        setAvatarSeed(newSeed)
+        if (user) {
+            localStorage.setItem(`avatar_seed_${user.id}`, newSeed)
+        }
+    }
+
+    // 已登录：显示头像
+    const avatarUrl = useMemo(() => {
+        if (!user) return ''
+        // 使用 state 中的 seed
+        return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=e5e7eb`
+    }, [user, avatarSeed])
+
     // 计算显示名称 (优先显示昵称，其次是邮箱，最后是 ID 的后4位)
     const displayName = useMemo(() => {
         if (!user) return ''
@@ -233,28 +263,67 @@ export default function UserProfile() {
                 ...styles.card,
                 boxShadow: '0 16px 60px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.05)' // 加深阴影，提升层次感防止“融为一体”
             }}>
-                {/* Header: User Info */}
-                <div style={styles.header}>
-                    <p style={styles.email} title={displayName}>{displayName}</p>
+                {/* Header: User Info & Avatar Switcher */}
+                <div style={{ ...styles.header, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {/* 可点击切换的头像 */}
+                    <div
+                        onClick={handleChangeAvatar}
+                        title="点击随机更换头像"
+                        style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            border: '2px solid #fff',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            flexShrink: 0,
+                            cursor: 'pointer',
+                            position: 'relative',
+                            backgroundColor: '#f3f4f6'
+                        }}
+                        onMouseEnter={e => {
+                            e.currentTarget.style.transform = 'rotate(15deg) scale(1.05)'
+                            e.currentTarget.querySelector('.refresh-icon').style.opacity = '1'
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.transform = 'rotate(0) scale(1)'
+                            e.currentTarget.querySelector('.refresh-icon').style.opacity = '0'
+                        }}
+                    >
+                        <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
 
-                    {!user.email ? (
-                        <button
-                            onClick={handleBindEmail}
-                            style={{
-                                fontSize: '12px',
-                                color: '#2563eb',
-                                border: 'none',
-                                background: 'none',
-                                padding: 0,
-                                cursor: 'pointer',
-                                fontWeight: '500'
-                            }}
-                        >
-                            + 绑定邮箱
-                        </button>
-                    ) : (
-                        <p style={{ fontSize: '12px', color: '#888' }}>{user.email}</p>
-                    )}
+                        {/* Hover Overlay Icon */}
+                        <div className="refresh-icon" style={{
+                            position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.3)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            opacity: 0, transition: 'opacity 0.2s', color: '#fff'
+                        }}>
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </div>
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={styles.email} title={displayName}>{displayName}</p>
+
+                        {!user.email ? (
+                            <button
+                                onClick={handleBindEmail}
+                                style={{
+                                    fontSize: '12px',
+                                    color: '#2563eb',
+                                    border: 'none',
+                                    background: 'none',
+                                    padding: 0,
+                                    cursor: 'pointer',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                + 绑定邮箱
+                            </button>
+                        ) : (
+                            <p style={{ fontSize: '12px', color: '#888' }}>{user.email}</p>
+                        )}
+                    </div>
                 </div>
 
                 {/* List Menu */}
