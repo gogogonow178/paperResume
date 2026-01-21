@@ -77,7 +77,7 @@ export default async function handler(req, res) {
 2. **动词驱动**: 使用强有力的动词开头。
 3. **量化成果**: 挖掘或推断可量化的成果数据。
 4. **精简文字**: 去除口语，保持客观专业。
-5. **格式输出**: 直接输出润色后的文本，如果是多条经历，使用实心圆点 (•) 开头。
+5. **格式输出**: 直接输出润色后的文本，如果是多条经历，使用实心圆点 (•) 开头，每条经历之间**不留空行**。
 `
 
         // Choose model based on mode or default to a cost-effective one
