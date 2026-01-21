@@ -4,16 +4,16 @@ import UserProfile from '../UserProfile'
 
 /**
  * PreviewPanel - 右侧预览区容器
- * 自适应宽度，深灰背景，居中显示 A4 简历预览
+ * 结构优化：Header 移除滚动区域，防止 Dropdown 被截断
  */
 function PreviewPanel() {
     return (
-        <main className="flex-1 h-screen overflow-y-auto hide-scrollbar"
+        <main className="flex-1 h-screen flex flex-col overflow-hidden"
             style={{
                 background: 'linear-gradient(180deg, #E8E8ED 0%, #D8D8DD 100%)'
             }}>
-            {/* 顶部导出工具栏 - 玻璃态增强 */}
-            <header className="sticky top-0 z-10 header-glass"
+            {/* 顶部导出工具栏 - 移出滚动区域，防止 Dropdown 被截断 */}
+            <header className="z-20 header-glass flex-shrink-0"
                 style={{
                     padding: '14px 24px'
                 }}>
@@ -30,11 +30,11 @@ function PreviewPanel() {
                 </div>
             </header>
 
-            {/* A4 简历预览 */}
-            <div className="py-6">
+            {/* A4 简历预览 - 独立的滚动区域 */}
+            <div className="flex-1 overflow-y-auto hide-scrollbar py-6">
                 <ResumePage />
             </div>
-        </main >
+        </main>
     )
 }
 
