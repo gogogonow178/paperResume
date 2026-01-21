@@ -57,18 +57,9 @@ export default function UserProfile() {
             <>
                 <button
                     onClick={() => setIsAuthModalOpen(true)}
-                    className="group flex items-center gap-2 px-5 py-2 bg-black text-white rounded-full text-sm font-bold shadow-lg hover:bg-gray-800 hover:scale-105 active:scale-95 transition-all duration-200"
-                    style={{
-                        boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
-                    }}
+                    className="px-6 py-2 bg-[#000000] text-white rounded-full text-[13px] font-bold tracking-wide shadow-md hover:shadow-lg hover:bg-gray-900 hover:scale-[1.03] active:scale-95 transition-all duration-300 ease-out"
                 >
-                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    登录 / 注册
-                    <svg className="w-3.5 h-3.5 text-gray-400 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
+                    登录
                 </button>
                 {/* 动态加载 AuthModal 以避免循环依赖或未加载问题 */}
                 {isAuthModalOpen && <AuthModalWrapper isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />}
