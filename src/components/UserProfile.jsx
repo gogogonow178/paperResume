@@ -1,50 +1,120 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '../context/AuthContext'
-
+import PricingModal from './PricingModal'
+import AuthModal from './AuthModal'
 export default function UserProfile() {
     const { user, userProfile, signInWithEmail, signOut, refreshProfile } = useAuth()
     const [isHovering, setIsHovering] = useState(false)
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
+    const [isRefreshing, setIsRefreshing] = useState(false)
+
+    // 头像种子状态 (支持从 LocalStorage 读取，实现轻量级持久化)
+    const [avatarSeed, setAvatarSeed] = useState(() => {
+        if (!user) return ''
+        try {
+            return localStorage.getItem(`avatar_seed_${user?.id}`) || user?.email || user?.id
+        } catch (e) {
+            return ''
+        }
+    })
+
     const triggerRef = useRef(null)
+    const timeoutRef = useRef(null)
 
     // Hover 延迟处理
-    const timeoutRef = useRef(null)
     const handleMouseEnter = () => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current)
+
+        // 立即计算位置，防止出现 (0,0) 的闪烁或飞入动画
+        if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect()
+            setDropdownPosition({
+                top: rect.bottom + 6,
+                right: window.innerWidth - rect.right
+            })
+        }
+
         setIsHovering(true)
     }
+
     const handleMouseLeave = () => {
         timeoutRef.current = setTimeout(() => {
             setIsHovering(false)
         }, 150)
     }
 
-    // 计算 Portal 位置
-    useEffect(() => {
-        if (isHovering && triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect()
-            setDropdownPosition({
-                top: rect.bottom + 6, // 稍微往上提一点 (原 +12)
-                right: window.innerWidth - rect.right
-            })
-        }
-    }, [isHovering])
-
-    const credits = userProfile?.credits ?? '-'
-
     // 强制同步检查
+    const credits = userProfile?.credits ?? '-'
+    useEffect(() => {
+        if (user && credits === '-') {
+            refreshProfile()
+        }
+    }, [user, credits, refreshProfile])
+
+    // 监听用户变化，重置种子
     useEffect(() => {
         if (user) {
-            if (credits === '-') {
-                refreshProfile()
+            try {
+                const savedSeed = localStorage.getItem(`avatar_seed_${user.id}`)
+                setAvatarSeed(savedSeed || user.email || user.id)
+            } catch (e) {
+                console.warn('LocalStorage access failed', e)
             }
         }
-    }, [user, credits])
+    }, [user])
+
+    // 处理刷新逻辑
+    const handleRefresh = async () => {
+        if (isRefreshing) return
+        setIsRefreshing(true)
+        // 给人一种正在刷新的感觉，至少转个0.5秒
+        const minTime = new Promise(resolve => setTimeout(resolve, 800))
+        await Promise.all([refreshProfile(), minTime])
+        setIsRefreshing(false)
+    }
+
+    // 切换头像
+    const handleChangeAvatar = () => {
+        const newSeed = Math.random().toString(36).substring(7)
+        setAvatarSeed(newSeed)
+        if (user) {
+            localStorage.setItem(`avatar_seed_${user.id}`, newSeed)
+        }
+    }
 
     // 已登录：显示头像
+    const avatarUrl = useMemo(() => {
+        if (!user) return ''
+        // 使用 state 中的 seed
+        return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=e5e7eb`
+    }, [user, avatarSeed])
 
+    // 计算显示名称 (优先显示昵称，其次是邮箱，最后是 ID 的后4位)
+    const displayName = useMemo(() => {
+        if (!user) return ''
+        const meta = user.user_metadata
+        if (meta?.full_name) return meta.full_name
+        if (meta?.name) return meta.name
+        if (meta?.user_name) return meta.user_name
+        if (user.email) return user.email
+        return `用户 ${user.id.slice(0, 4)}`
+    }, [user])
+
+    // 绑定邮箱的伪逻辑 (占位)
+    const handleBindEmail = () => {
+        const email = prompt('请输入要绑定的邮箱：')
+        if (email) {
+            alert(`正在为 ${email} 发送验证邮件... (功能开发中)`)
+        }
+    }
+
+    const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
+
+    const handlePurchase = () => {
+        setIsPricingModalOpen(true)
+    }
 
     // 核心样式常量 - 强制覆盖 Tailwind
     const styles = {
@@ -73,7 +143,7 @@ export default function UserProfile() {
             zIndex: 999999,
             width: '280px',
             paddingTop: '8px',
-            transition: 'all 0.2s ease-out',
+            transition: 'opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out',
             transformOrigin: 'top right',
             opacity: isHovering ? 1 : 0,
             transform: isHovering ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.96)',
@@ -156,7 +226,29 @@ export default function UserProfile() {
 
     if (!user) {
         return (
-            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <style>{`
+                    @keyframes subtle-bounce {
+                        0%, 5%, 15%, 25%, 100% { transform: translateY(0); }
+                        10% { transform: translateY(-3px); }
+                        20% { transform: translateY(-1.5px); }
+                    }
+                `}</style>
+                <div style={{
+                    color: '#BE123C',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    padding: '6px 14px',
+                    backgroundColor: '#FFF1F2',
+                    borderRadius: '100px',
+                    border: '1px solid #FFE4E6',
+                    whiteSpace: 'nowrap',
+                    animation: 'subtle-bounce 5s infinite ease-in-out',
+                    cursor: 'default',
+                    boxShadow: '0 2px 6px rgba(190, 18, 60, 0.05)'
+                }}>
+                    🎁 注册即送 5 次 AI 深度润色
+                </div>
                 <button
                     onClick={() => setIsAuthModalOpen(true)}
                     style={styles.loginBtn}
@@ -175,78 +267,8 @@ export default function UserProfile() {
                 </button>
                 {/* 动态加载 AuthModal 以避免循环依赖或未加载问题 */}
                 {isAuthModalOpen && <AuthModalWrapper isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />}
-            </>
+            </div>
         )
-    }
-
-    const handlePurchase = () => {
-        alert('【模拟充值】\n\n请扫描屏幕上的二维码进行支付...\n(支付成功后积分将增加)')
-        setTimeout(() => {
-            if (confirm('模拟：支付成功了吗？')) {
-                refreshProfile()
-            }
-        }, 1000)
-    }
-
-    const [isRefreshing, setIsRefreshing] = useState(false)
-
-    // 处理刷新逻辑
-    const handleRefresh = async () => {
-        if (isRefreshing) return
-        setIsRefreshing(true)
-        // 给人一种正在刷新的感觉，至少转个0.5秒
-        const minTime = new Promise(resolve => setTimeout(resolve, 800))
-        await Promise.all([refreshProfile(), minTime])
-        setIsRefreshing(false)
-    }
-
-    // 头像种子状态 (支持从 LocalStorage 读取，实现轻量级持久化)
-    const [avatarSeed, setAvatarSeed] = useState(() => {
-        if (!user) return ''
-        return localStorage.getItem(`avatar_seed_${user.id}`) || user.email || user.id
-    })
-
-    // 监听用户变化，重置种子
-    useEffect(() => {
-        if (user) {
-            const savedSeed = localStorage.getItem(`avatar_seed_${user.id}`)
-            setAvatarSeed(savedSeed || user.email || user.id)
-        }
-    }, [user])
-
-    // 切换头像
-    const handleChangeAvatar = () => {
-        const newSeed = Math.random().toString(36).substring(7)
-        setAvatarSeed(newSeed)
-        if (user) {
-            localStorage.setItem(`avatar_seed_${user.id}`, newSeed)
-        }
-    }
-
-    // 已登录：显示头像
-    const avatarUrl = useMemo(() => {
-        if (!user) return ''
-        // 使用 state 中的 seed
-        return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=e5e7eb`
-    }, [user, avatarSeed])
-
-    // 计算显示名称 (优先显示昵称，其次是邮箱，最后是 ID 的后4位)
-    const displayName = useMemo(() => {
-        if (!user) return ''
-        const meta = user.user_metadata
-        if (meta?.full_name) return meta.full_name
-        if (meta?.name) return meta.name
-        if (meta?.user_name) return meta.user_name
-        if (user.email) return user.email
-        return `用户 ${user.id.slice(0, 4)}`
-    }, [user])
-
-    // 绑定邮箱的伪逻辑 (占位)
-    const handleBindEmail = () => {
-        const email = prompt('请输入要绑定的邮箱：')
-        if (email) {
-            alert(`正在为 ${email} 发送验证邮件... (功能开发中)`)
-        }
     }
 
     const DropdownContent = (
@@ -376,45 +398,52 @@ export default function UserProfile() {
     )
 
     return (
-        <div
-            className="flex flex-col items-center relative z-50"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            ref={triggerRef}
-        >
-            {/* Avatar - Trigger */}
+        <>
             <div
-                style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    border: '3px solid #fff',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    overflow: 'hidden',
-                    backgroundColor: '#f3f4f6',
-                    transform: isHovering ? 'scale(1.1)' : 'scale(1)',
-                    transition: 'transform 0.3s ease'
-                }}
+                className="flex flex-col items-center relative z-50"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                ref={triggerRef}
             >
-                <img
-                    src={avatarUrl}
-                    alt="User Avatar"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                {/* Avatar - Trigger */}
+                <div
+                    style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        border: '3px solid #fff',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        overflow: 'hidden',
+                        backgroundColor: '#f3f4f6',
+                        transform: isHovering ? 'scale(1.1)' : 'scale(1)',
+                        transition: 'transform 0.3s ease'
+                    }}
+                >
+                    <img
+                        src={avatarUrl}
+                        alt="User Avatar"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                </div>
+
+                {/* Portal Dropdown */}
+                {createPortal(DropdownContent, document.body)}
             </div>
 
-            {/* Portal Dropdown */}
-            {createPortal(DropdownContent, document.body)}
-        </div>
+            {/* Pricing Modal */}
+            <PricingModal
+                isOpen={isPricingModalOpen}
+                onClose={() => setIsPricingModalOpen(false)}
+            />
+        </>
     )
 }
 
 // 简单的 Wrapper 避免 import 循环，或者直接 import AuthModal (如果 AuthModal 是 default export)
-import AuthModal from './AuthModal'
 function AuthModalWrapper({ isOpen, onClose }) {
     return <AuthModal isOpen={isOpen} onClose={onClose} />
 }

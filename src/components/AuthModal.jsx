@@ -22,7 +22,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     const [timer, setTimer] = useState(0) // 倒计时状态
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState(null)
-    const [tab, setTab] = useState('wechat')
     const { signInWithEmail, verifyEmailOtp } = useAuth()
 
     // 防止滚动穿透
@@ -52,18 +51,38 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
 
     const handleEmailLogin = async (e) => {
         e.preventDefault()
-        setLoading(true)
-        setMessage(null)
 
+        // 1. 基础校验
+        if (!email || !/\S+@\S+\.\S+/.test(email)) {
+            setMessage({ type: 'error', text: '请输入有效的邮箱地址' })
+            return
+        }
+
+        // 2. 乐观更新：如果不等待直接跳转，用户体验极佳
+        // 先设为 loading 避免重复提交（虽然切界面了也点不到）
+        setLoading(true)
+
+        // 立即跳转进入 OTP 界面 (Optimistic UI)
+        setStep('otp')
+        setOtp('')
+        setTimer(60)
+        setMessage({ type: 'success', text: '正在发送验证码...' }) // 初始提示
+
+        // 3. 后台异步发送
         try {
+            // 稍微延迟一点点，让界面先渲染出来，避免卡顿
+            await new Promise(resolve => setTimeout(resolve, 50))
+
             const { error } = await signInWithEmail(email)
             if (error) throw error
+
+            // 发送成功
             setMessage({ type: 'success', text: '验证码已发送，请查收' })
-            setStep('otp')
-            setOtp('')
-            setTimer(60) // 开始 60s 倒计时
         } catch (error) {
-            setMessage({ type: 'error', text: error.message || '发送失败' })
+            // 发送失败处理
+            console.error('Send OTP error:', error)
+            setMessage({ type: 'error', text: error.message || '发送失败，请稍后重试' })
+            setTimer(0) // 允许立即重试
         } finally {
             setLoading(false)
         }
@@ -122,7 +141,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
         },
         modal: {
             position: 'relative',
-            width: '500px', // 强制宽度 500px
+            width: '460px', // 稍微收窄一点，因为没有 Tab 了
             maxWidth: '90vw',
             backgroundColor: '#FFFFFF',
             borderRadius: '32px',
@@ -130,10 +149,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
             border: '1px solid rgba(0,0,0,0.05)',
             overflow: 'hidden',
             transform: 'scale(1)',
-            padding: '50px', // 强制内边距 50px
+            padding: '40px 32px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '40px' // 强制间距 40px
+            gap: '30px'
         },
         closeBtn: {
             position: 'absolute',
@@ -151,39 +170,19 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '20px'
+            gap: '16px'
         },
         logobox: {
-            width: '64px',
-            height: '64px',
+            width: '56px',
+            height: '56px',
             background: '#000',
-            borderRadius: '20px',
+            borderRadius: '18px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#fff',
             boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
         },
-        tabContainer: {
-            display: 'flex',
-            background: '#F5F5F7',
-            padding: '6px',
-            borderRadius: '16px',
-            border: '1px solid rgba(0,0,0,0.05)'
-        },
-        tabBtn: (isActive) => ({
-            flex: 1,
-            padding: '14px 0',
-            border: 'none',
-            borderRadius: '12px',
-            background: isActive ? '#FFFFFF' : 'transparent',
-            color: isActive ? '#000000' : '#86868B',
-            boxShadow: isActive ? '0 2px 10px rgba(0,0,0,0.05)' : 'none',
-            fontWeight: 600,
-            fontSize: '15px',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
-        }),
         input: {
             width: '100%',
             padding: '18px 20px',
@@ -211,7 +210,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     }
 
     return createPortal(
-        <div style={styles.overlay} onClick={onClose}>
+        <div style={styles.overlay}>
             <div
                 style={styles.modal}
                 onClick={e => e.stopPropagation()}
@@ -226,140 +225,130 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                 {/* 1. Header */}
                 <div style={styles.header}>
                     <div style={styles.logobox}>
-                        <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                     </div>
                     <div>
-                        <h2 style={{ fontSize: '26px', fontWeight: 700, margin: '0 0 10px 0', color: '#000' }}>
-                            开启 AI 智能润色
+                        <h2 style={{ fontSize: '24px', fontWeight: 700, margin: '0', color: '#000' }}>
+                            邮箱极速登录
                         </h2>
-                        <p style={{ margin: 0, color: '#666', fontSize: '15px' }}>
-                            新用户注册即送 <strong>5</strong> 次高级优化额度
-                        </p>
                     </div>
                 </div>
 
-                {/* 2. Tabs */}
-                <div style={styles.tabContainer}>
-                    <button style={styles.tabBtn(tab === 'wechat')} onClick={() => setTab('wechat')}>
-                        微信扫码
-                    </button>
-                    <button style={styles.tabBtn(tab === 'email')} onClick={() => setTab('email')}>
-                        邮箱登录
-                    </button>
-                </div>
-
                 {/* 3. Content */}
-                <div style={{ minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    {tab === 'wechat' ? (
-                        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <div style={{
-                                width: '150px', height: '150px', background: '#fff', border: '1px solid #eee',
-                                borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px'
-                            }}>
-                                <span style={{ color: '#ccc', fontSize: '13px' }}>即将上线</span>
-                            </div>
-                            <button
-                                onClick={() => setTab('email')}
-                                style={{ background: 'none', border: 'none', color: '#000', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
-                            >
-                                暂不可用，请使用邮箱 →
-                            </button>
-                        </div>
-                    ) : (
-                        <form onSubmit={step === 'email' ? handleEmailLogin : handleOtpLogin}>
-                            {step === 'email' ? (
-                                <div style={{ marginBottom: '10px' }}>
-                                    <input
-                                        type="email"
-                                        required
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="请输入您的邮箱地址..."
-                                        style={styles.input}
-                                        disabled={loading}
-                                    />
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <form onSubmit={step === 'email' ? handleEmailLogin : handleOtpLogin}>
+                        {step === 'email' ? (
+                            <div style={{ marginBottom: '10px' }}>
+                                <div style={{
+                                    margin: '0 0 20px 0',
+                                    display: 'flex',
+                                    justifyContent: 'center'
+                                }}>
+                                    <span style={{
+                                        backgroundColor: '#FFF1F2',
+                                        color: '#BE123C',
+                                        fontSize: '13px',
+                                        padding: '4px 12px',
+                                        borderRadius: '100px',
+                                        fontWeight: '500',
+                                        border: '1px solid #FFE4E6'
+                                    }}>
+                                        🎁 注册即送 <strong style={{ fontWeight: 700 }}>5</strong> 次 AI 深度润色
+                                    </span>
                                 </div>
-                            ) : (
-                                <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                                        <span style={{ fontSize: '14px', color: '#666' }}>验证码已发送至</span>
-                                        <br />
-                                        <span style={{ fontWeight: 600, color: '#000' }}>{email}</span>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    autocomplete="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="请输入您的邮箱地址..."
+                                    style={styles.input}
+                                    disabled={loading}
+                                />
+                            </div>
+                        ) : (
+                            <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <div style={{ textAlign: 'center', marginBottom: '8px', fontSize: '13px', color: '#666' }}>
+                                    验证码已发送至 <span style={{ fontWeight: 600, color: '#000', margin: '0 4px' }}>{email}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setStep('email'); setMessage(null); }}
+                                        style={{ border: 'none', background: 'none', color: '#999', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
+                                    >
+                                        修改
+                                    </button>
+                                </div>
+                                <input
+                                    type="text"
+                                    required
+                                    value={otp}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                                        setOtp(val)
+                                        if (val.length === 6) handleOtpLogin(e, val)
+                                    }}
+                                    placeholder="请输入 6 位验证码"
+                                    style={{ ...styles.input, letterSpacing: '4px', fontWeight: 'bold', fontSize: '20px' }}
+                                    autoFocus
+                                    disabled={loading}
+                                />
+
+                                {/* 倒计时与重发按钮 */}
+                                <div style={{ textAlign: 'center', marginTop: '5px' }}>
+                                    {timer > 0 ? (
+                                        <span style={{ fontSize: '13px', color: '#999' }}>
+                                            {timer} 秒后可重新发送
+                                        </span>
+                                    ) : (
                                         <button
                                             type="button"
-                                            onClick={() => { setStep('email'); setMessage(null); }}
-                                            style={{ marginLeft: '10px', border: 'none', background: 'none', color: '#666', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
+                                            onClick={handleResend}
+                                            disabled={loading}
+                                            style={{
+                                                background: 'none', border: 'none', color: '#000',
+                                                fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+                                                textDecoration: 'underline'
+                                            }}
                                         >
-                                            修改
+                                            重新发送验证码
                                         </button>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={otp}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/\D/g, '').slice(0, 6)
-                                            setOtp(val)
-                                            if (val.length === 6) handleOtpLogin(e, val)
-                                        }}
-                                        placeholder="请输入 6 位验证码"
-                                        style={{ ...styles.input, letterSpacing: '4px', fontWeight: 'bold', fontSize: '20px' }}
-                                        autoFocus
-                                        disabled={loading}
-                                    />
-
-                                    {/* 倒计时与重发按钮 */}
-                                    <div style={{ textAlign: 'center', marginTop: '5px' }}>
-                                        {timer > 0 ? (
-                                            <span style={{ fontSize: '13px', color: '#999' }}>
-                                                {timer} 秒后可重新发送
-                                            </span>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={handleResend}
-                                                disabled={loading}
-                                                style={{
-                                                    background: 'none', border: 'none', color: '#000',
-                                                    fontWeight: 600, fontSize: '13px', cursor: 'pointer',
-                                                    textDecoration: 'underline'
-                                                }}
-                                            >
-                                                重新发送验证码
-                                            </button>
-                                        )}
-                                    </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            {message && (
-                                <div style={{
-                                    padding: '15px', borderRadius: '12px', marginBottom: '10px', fontSize: '14px', textAlign: 'center',
-                                    backgroundColor: message.type === 'success' ? '#ECFDF5' : '#FEF2F2',
-                                    color: message.type === 'success' ? '#065F46' : '#991B1B'
-                                }}>
-                                    {message.text}
-                                </div>
-                            )}
+                        {message && (
+                            <div style={{
+                                padding: '15px', borderRadius: '12px', marginBottom: '10px', fontSize: '14px', textAlign: 'center',
+                                backgroundColor: message.type === 'success' ? '#ECFDF5' : '#FEF2F2',
+                                color: message.type === 'success' ? '#065F46' : '#991B1B'
+                            }}>
+                                {message.text}
+                            </div>
+                        )}
 
-                            <button type="submit" style={styles.submitBtn} disabled={loading}>
-                                {loading ? '处理中...' : (step === 'email' ? '获取验证码' : '登录')}
-                            </button>
-                        </form>
-                    )}
+                        <button type="submit" style={styles.submitBtn} disabled={loading}>
+                            {loading ? '处理中...' : (step === 'email' ? '获取验证码' : '登录')}
+                        </button>
+                    </form>
                 </div>
 
                 {/* 底部协议 */}
-                <div style={{ textAlign: 'center', borderTop: '1px solid #f0f0f0', paddingTop: '20px' }}>
+                < div style={{ textAlign: 'center', borderTop: '1px solid #f0f0f0', paddingTop: '20px' }}>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#666', opacity: 1 }}>
+                        个人开发维护，经费有限暂不支持手机号微信（感谢理解 ❤️）
+                    </p>
                     <p style={{ margin: 0, fontSize: '12px', color: '#999' }}>
                         登录即代表您已阅读并同意用户协议与隐私政策
                     </p>
-                </div>
+                </div >
 
-            </div>
-        </div>,
+            </div >
+        </div >,
         document.body
     )
 }
