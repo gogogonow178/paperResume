@@ -58,14 +58,14 @@ export default function UserProfile() {
                 <button
                     onClick={() => setIsAuthModalOpen(true)}
                     className="
-                        px-8 py-3
-                        bg-[#0A0A0A] hover:bg-[#222]
+                        h-11 px-8
+                        bg-black hover:bg-[#222]
                         text-white text-[15px] font-bold tracking-wide
-                        rounded-xl
-                        shadow-lg hover:shadow-xl
-                        transform hover:-translate-y-0.5
+                        rounded-full
+                        shadow-lg hover:shadow-xl hover:shadow-black/20
+                        hover:-translate-y-0.5 active:translate-y-0 active:scale-95
                         transition-all duration-300 ease-out
-                        active:scale-[0.97] active:translate-y-0
+                        flex items-center justify-center
                     "
                 >
                     登录 / 注册
