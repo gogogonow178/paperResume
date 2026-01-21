@@ -44,11 +44,7 @@ export default function UserProfile() {
     }, [user, credits])
 
     // 已登录：显示头像
-    const avatarUrl = useMemo(() => {
-        if (!user) return ''
-        const seed = user.email || user.id // 优先用邮箱做种子，生成的头像更稳定且更有“人味”
-        return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}&backgroundColor=e5e7eb`
-    }, [user])
+
 
     // 核心样式常量 - 强制覆盖 Tailwind
     const styles = {
