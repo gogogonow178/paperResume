@@ -36,8 +36,14 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Missing Authorization header' })
     }
 
-    // 2. Authenticate User with Supabase
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    // 2. Authenticate User with Supabase (Forward Auth Header for RLS)
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+            headers: {
+                Authorization: authHeader,
+            },
+        },
+    })
     const token = authHeader.replace('Bearer ', '')
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
