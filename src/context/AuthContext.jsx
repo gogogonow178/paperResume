@@ -59,13 +59,24 @@ export function AuthProvider({ children }) {
                 .single()
 
             if (error) {
-                console.error('Error fetching user profile:', error)
+                // Supabase .single() 如果找不到数据会返回 406 / PGRST116 错误
+                if (error.code === 'PGRST116' || error.message?.includes('JSON object requested, but 0 rows were returned')) {
+                    console.warn('User deleted in database. Forcing logout.')
+                    await supabase.auth.signOut()
+                    setUser(null)
+                    setSession(null)
+                    setUserProfile(null)
+                    window.location.reload() // 彻底重置
+                } else {
+                    console.error('Error fetching user profile:', error)
+                }
             } else if (!data) {
-                // 如果数据库查不到用户记录（被手动删除了），强制登出
-                console.warn('User profile not found. Forcing sign out.')
+                console.warn('Empty profile data. Forcing logout.')
                 await supabase.auth.signOut()
                 setUser(null)
                 setSession(null)
+                setUserProfile(null)
+                window.location.reload() // 彻底重置
             } else {
                 setUserProfile(data)
             }
