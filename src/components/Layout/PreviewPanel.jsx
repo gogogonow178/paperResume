@@ -1,6 +1,6 @@
 import ResumePage from '../Preview/ResumePage'
 import ExportButtons from '../Toolbar/ExportButtons'
-import UserProfile from '../../UserProfile'
+import UserProfile from '../UserProfile'
 
 /**
  * PreviewPanel - 右侧预览区容器
