@@ -192,6 +192,31 @@ export default function UserProfile() {
         }, 1000)
     }
 
+    const [isRefreshing, setIsRefreshing] = useState(false)
+
+    // 处理刷新逻辑
+    const handleRefresh = async () => {
+        if (isRefreshing) return
+        setIsRefreshing(true)
+        // 给人一种正在刷新的感觉，至少转个0.5秒
+        const minTime = new Promise(resolve => setTimeout(resolve, 800))
+        await Promise.all([refreshProfile(), minTime])
+        setIsRefreshing(false)
+    }
+
+    // 计算显示名称 (优先显示昵称，其次是邮箱，最后是 ID 的后4位)
+    const displayName = useMemo(() => {
+        if (!user) return ''
+        const meta = user.user_metadata
+        if (meta?.full_name) return meta.full_name
+        if (meta?.name) return meta.name
+        if (meta?.user_name) return meta.user_name
+        if (user.email) return user.email
+        return `用户 ${user.id.slice(0, 4)}`
+    }, [user])
+
+    // ... (中间代码省略) ...
+
     const DropdownContent = (
         <div
             style={styles.dropdown}
@@ -201,8 +226,8 @@ export default function UserProfile() {
             <div style={styles.card}>
                 {/* Header: User Info */}
                 <div style={styles.header}>
-                    <p style={styles.email} title={user.email}>{user.email}</p>
-                    <p style={styles.badge}>个人免费版</p>
+                    <p style={styles.email} title={displayName}>{displayName}</p>
+                    {/* 移除 '个人免费版'，如果未来有会员逻辑再加回 */}
                 </div>
 
                 {/* List Menu */}
@@ -212,10 +237,20 @@ export default function UserProfile() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '18px', color: '#000' }}>{credits}</span>
                             <button
-                                onClick={refreshProfile}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', padding: '4px', display: 'flex' }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#000'}
-                                onMouseLeave={e => e.currentTarget.style.color = '#999'}
+                                onClick={handleRefresh}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: isRefreshing ? '#000' : '#999',
+                                    padding: '4px',
+                                    display: 'flex',
+                                    transition: 'transform 0.5s ease',
+                                    transform: isRefreshing ? 'rotate(360deg)' : 'rotate(0deg)'
+                                }}
+                                onMouseEnter={e => !isRefreshing && (e.currentTarget.style.color = '#000')}
+                                onMouseLeave={e => !isRefreshing && (e.currentTarget.style.color = '#999')}
+                                disabled={isRefreshing}
                             >
                                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                             </button>
