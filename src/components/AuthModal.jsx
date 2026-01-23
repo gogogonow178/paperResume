@@ -362,8 +362,29 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                         )}
 
                         <button type="submit" style={styles.submitBtn} disabled={loading}>
-                            {loading ? '处理中...' : (step === 'email' ? '获取验证码' : '登录')}
+                            {loading ? (
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                    <svg
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        style={{
+                                            animation: 'spin 1s linear infinite'
+                                        }}
+                                    >
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="31.4 31.4" />
+                                    </svg>
+                                    <span>{step === 'email' ? '正在发送验证码…' : '正在验证…'}</span>
+                                </span>
+                            ) : (step === 'email' ? '获取验证码' : '登录')}
                         </button>
+                        <style>{`
+                            @keyframes spin {
+                                from { transform: rotate(0deg); }
+                                to { transform: rotate(360deg); }
+                            }
+                        `}</style>
                     </form>
                 </div>
 
