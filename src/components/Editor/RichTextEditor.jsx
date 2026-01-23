@@ -127,7 +127,7 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
     // ----------------------------------------------------------------
     // AI 润色逻辑
     // ----------------------------------------------------------------
-    const { user, session, refreshProfile } = useAuth && useAuth() || {} // Fail safe if context missing
+    const { user, session, userProfile, refreshProfile } = useAuth && useAuth() || {} // Fail safe if context missing
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
     const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
     const [isPolishing, setIsPolishing] = useState(false)
@@ -145,7 +145,14 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
             return
         }
 
-        // 2. 检查缓存 - 相同输入直接返回缓存结果
+        // 2. 前端预检查积分 - 积分为 0 时直接弹出充值弹窗，不发请求
+        const credits = userProfile?.credits ?? 0
+        if (credits <= 0) {
+            setIsPricingModalOpen(true)
+            return
+        }
+
+        // 3. 检查缓存 - 相同输入直接返回缓存结果
         const cacheKey = textToPolish.trim()
         const cachedResult = polishCacheRef.current.get(cacheKey)
         if (cachedResult) {
