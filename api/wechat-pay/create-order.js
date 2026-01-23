@@ -9,11 +9,11 @@ import crypto from 'crypto'
  * 返回: { code_url, out_trade_no } 或错误
  */
 
-// 套餐配置（测试金额）
+// 套餐配置（生产环境金额）
 const TIERS = {
-    trial: { price: 10, credits: 5, name: '尝鲜包' },     // 0.1 元 = 10 分
-    pro: { price: 20, credits: 20, name: '求职包' },     // 0.2 元 = 20 分
-    max: { price: 30, credits: 50, name: '面霸包' }      // 0.3 元 = 30 分
+    trial: { price: 990, credits: 5, name: '尝鲜包' },      // 9.9 元 = 990 分
+    pro: { price: 1990, credits: 20, name: '求职包' },    // 19.9 元 = 1990 分
+    max: { price: 2990, credits: 50, name: '面霸包' }     // 29.9 元 = 2990 分
 }
 
 // 环境变量
@@ -127,15 +127,6 @@ export default async function handler(req, res) {
 
     try {
         const authorization = buildAuthHeader('POST', wxPayUrl, requestBody)
-
-        console.log('Sending to WeChat Pay:', {
-            url: 'https://api.mch.weixin.qq.com' + wxPayUrl,
-            headers: {
-                Authorization: authorization,
-                'Notify-URL': notifyUrl
-            },
-            body: JSON.parse(requestBody)
-        })
 
         const wxResponse = await fetch('https://api.mch.weixin.qq.com' + wxPayUrl, {
             method: 'POST',

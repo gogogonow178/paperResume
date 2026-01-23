@@ -17,37 +17,37 @@ export default function PricingModal({ isOpen, onClose }) {
     const [errorMessage, setErrorMessage] = useState('')
     const pollIntervalRef = useRef(null)
 
-    // 套餐配置（测试金额）
+    // 套餐配置（生产环境金额）
     const tiers = {
         trial: {
             id: 'trial',
             name: '☕️ 尝鲜包',
-            price: '0.1',
+            price: '9.9',
             credits: 5,
             desc: '试错门槛低，适合单次体验',
             tag: '',
             color: '#666',
-            pricePerCredit: '0.02'
+            pricePerCredit: '1.98'
         },
         pro: {
             id: 'pro',
             name: '🔥 求职包',
-            price: '0.2',
+            price: '19.9',
             credits: 20,
             desc: '主力推荐，够改3份简历',
             tag: '80% 用户的选择',
             color: '#000',
-            pricePerCredit: '0.01'
+            pricePerCredit: '1.0'
         },
         max: {
             id: 'max',
             name: '🚀 面霸包',
-            price: '0.3',
+            price: '29.9',
             credits: 50,
             desc: '海投专用，深度打磨细节',
             tag: '',
             color: '#0071e3',
-            pricePerCredit: '0.006'
+            pricePerCredit: '0.6'
         }
     }
 

@@ -40,17 +40,6 @@ function decryptResource(resource) {
 }
 
 export default async function handler(req, res) {
-    // 允许 GET 请求用于测试连通性
-    if (req.method === 'GET') {
-        return res.status(200).json({
-            message: 'WeChat Pay Notify endpoint is alive!',
-            env_check: {
-                hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-                hasApiKeyV3: !!process.env.WECHAT_PAY_API_KEY_V3
-            }
-        })
-    }
-
     // 微信回调只接受 POST
     if (req.method !== 'POST') {
         return res.status(405).json({ code: 'METHOD_NOT_ALLOWED' })
@@ -58,8 +47,6 @@ export default async function handler(req, res) {
 
     try {
         console.log('--- Received WeChat Pay Notification Event ---')
-        console.log('Headers:', JSON.stringify(req.headers))
-        console.log('Body:', JSON.stringify(req.body))
 
         const notification = req.body
         // 1. 验证通知类型
