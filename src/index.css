@@ -542,3 +542,42 @@ body {
     transform: translateY(0);
   }
 }
+
+/* ==============================
+   可访问性增强
+   ============================== */
+
+/* 尊重用户的动画偏好设置 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-fade-in,
+  .animate-float,
+  .animate-shimmer,
+  .animate-pulse,
+  .animate-spin {
+    animation: none !important;
+  }
+}
+
+/* 数字表格对齐 - 用于价格、积分等数字显示 */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Modal 滚动锁定 - 防止背景滚动穿透 */
+.modal-open {
+  overflow: hidden;
+}
+
+/* Modal 容器滚动行为 */
+.modal-container {
+  overscroll-behavior: contain;
+}

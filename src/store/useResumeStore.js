@@ -12,8 +12,9 @@ const defaultResumeData = {
         jobTitle: '高级前端工程师',
         phone: '138-xxxx-8888',
         email: 'zhangsan@example.com',
+        wechat: 'wxid_zhangsan',
         city: '北京',
-        website: 'https://github.com/zhangsan',
+        website: 'zhangsan.dev',
     },
 
     // 教育经历

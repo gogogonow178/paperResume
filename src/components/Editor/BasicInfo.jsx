@@ -93,7 +93,7 @@ function BasicInfo() {
                                     justifyContent: 'center',
                                     color: '#D1D5DB'
                                 }}>
-                                    <svg style={{ width: '32px', height: '32px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg style={{ width: '32px', height: '32px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
                                 </div>
@@ -133,9 +133,11 @@ function BasicInfo() {
                     <label className="block text-[13px] font-medium text-gray-500 ml-1" style={{ marginBottom: '6px' }}>姓名</label>
                     <input
                         type="text"
+                        name="name"
+                        autoComplete="name"
                         value={basicInfo.name}
                         onChange={(e) => updateBasicInfo('name', e.target.value)}
-                        placeholder="你的姓名"
+                        placeholder="你的姓名…"
                         className="input"
                     />
                 </div>
@@ -145,9 +147,11 @@ function BasicInfo() {
                     <label className="block text-[13px] font-medium text-gray-500 ml-1" style={{ marginBottom: '6px' }}>求职意向</label>
                     <input
                         type="text"
+                        name="jobTitle"
+                        autoComplete="organization-title"
                         value={basicInfo.jobTitle}
                         onChange={(e) => updateBasicInfo('jobTitle', e.target.value)}
-                        placeholder="例如：高级前端工程师"
+                        placeholder="例如：高级前端工程师…"
                         className="input"
                     />
                 </div>
@@ -158,9 +162,11 @@ function BasicInfo() {
                         <label className="block text-[13px] font-medium text-gray-500 ml-1" style={{ marginBottom: '6px' }}>电话</label>
                         <input
                             type="tel"
+                            name="phone"
+                            autoComplete="tel"
                             value={basicInfo.phone}
                             onChange={(e) => updateBasicInfo('phone', e.target.value)}
-                            placeholder="手机号码"
+                            placeholder="手机号码…"
                             className="input"
                         />
                     </div>
@@ -168,9 +174,11 @@ function BasicInfo() {
                         <label className="block text-[13px] font-medium text-gray-500 ml-1" style={{ marginBottom: '6px' }}>邮箱</label>
                         <input
                             type="email"
+                            name="email"
+                            autoComplete="email"
                             value={basicInfo.email}
                             onChange={(e) => updateBasicInfo('email', e.target.value)}
-                            placeholder="邮箱地址"
+                            placeholder="邮箱地址…"
                             className="input"
                         />
                     </div>
@@ -181,24 +189,44 @@ function BasicInfo() {
                     <label className="block text-[13px] font-medium text-gray-500 ml-1" style={{ marginBottom: '6px' }}>所在城市</label>
                     <input
                         type="text"
+                        name="city"
+                        autoComplete="address-level2"
                         value={basicInfo.city}
                         onChange={(e) => updateBasicInfo('city', e.target.value)}
-                        placeholder="例如：北京 / 上海"
+                        placeholder="例如：北京 / 上海…"
                         className="input"
                     />
                 </div>
 
-                {/* 个人链接 */}
-                <div>
+                {/* 微信 (新增) */}
+                <div style={{ marginBottom: '16px' }}>
                     <label className="block text-[13px] font-medium text-gray-500 ml-1" style={{ marginBottom: '6px' }}>
-                        个人链接
+                        微信号
                         <span className="text-gray-400 font-normal ml-1">（选填）</span>
                     </label>
                     <input
-                        type="url"
+                        type="text"
+                        name="wechat"
+                        value={basicInfo.wechat || ''}
+                        onChange={(e) => updateBasicInfo('wechat', e.target.value)}
+                        placeholder="请输入微信号…"
+                        className="input"
+                    />
+                </div>
+
+                {/* 个人网站 (原个人链接) */}
+                <div>
+                    <label className="block text-[13px] font-medium text-gray-500 ml-1" style={{ marginBottom: '6px' }}>
+                        个人网站
+                        <span className="text-gray-400 font-normal ml-1">（选填）</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="website"
+                        autoComplete="url"
                         value={basicInfo.website}
                         onChange={(e) => updateBasicInfo('website', e.target.value)}
-                        placeholder="GitHub / 博客 / 作品集"
+                        placeholder="例如：zhangsan.dev"
                         className="input"
                     />
                 </div>

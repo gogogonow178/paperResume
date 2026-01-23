@@ -162,7 +162,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            overscrollBehavior: 'contain'
         },
         modal: {
             position: 'relative',
@@ -241,8 +242,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                 onClick={e => e.stopPropagation()}
             >
                 {/* 关闭按钮 */}
-                <button style={styles.closeBtn} onClick={onClose}>
-                    <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <button style={styles.closeBtn} onClick={onClose} aria-label="关闭">
+                    <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -286,13 +287,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                                 <input
                                     type="email"
                                     name="email"
-                                    autocomplete="email"
+                                    autoComplete="email"
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="请输入您的邮箱地址..."
+                                    placeholder="请输入您的邮箱地址…"
                                     style={styles.input}
                                     disabled={loading}
+                                    aria-label="邮箱地址"
                                 />
                             </div>
                         ) : (
@@ -309,6 +311,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                                 </div>
                                 <input
                                     type="text"
+                                    name="otp"
+                                    autoComplete="one-time-code"
+                                    inputMode="numeric"
                                     required
                                     value={otp}
                                     onChange={(e) => {
@@ -316,10 +321,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                                         setOtp(val)
                                         if (val.length === 6) handleOtpLogin(e, val)
                                     }}
-                                    placeholder="请输入 6 位验证码"
+                                    placeholder="请输入 6 位验证码…"
                                     style={{ ...styles.input, letterSpacing: '4px', fontWeight: 'bold', fontSize: '20px' }}
-                                    autoFocus
                                     disabled={loading}
+                                    aria-label="验证码"
                                 />
 
                                 {/* 倒计时与重发按钮 */}
@@ -363,17 +368,17 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                 </div>
 
                 {/* 底部协议 */}
-                < div style={{ textAlign: 'center', borderTop: '1px solid #f0f0f0', paddingTop: '20px' }}>
+                <div style={{ textAlign: 'center', borderTop: '1px solid #f0f0f0', paddingTop: '20px' }}>
                     <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#666', opacity: 1 }}>
                         个人开发维护，经费有限暂不支持手机号微信（感谢理解 ❤️）
                     </p>
                     <p style={{ margin: 0, fontSize: '12px', color: '#999' }}>
                         登录即代表您已阅读并同意用户协议与隐私政策
                     </p>
-                </div >
+                </div>
 
-            </div >
-        </div >,
+            </div>
+        </div>,
         document.body
     )
 }

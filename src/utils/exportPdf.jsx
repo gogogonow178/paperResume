@@ -1,7 +1,7 @@
-import { jsPDF } from 'jspdf'
-import html2canvas from 'html2canvas'
-import JSZip from 'jszip'
 import useResumeStore from '../store/useResumeStore'
+
+// 动态导入重型库以减少初始包体积 (jsPDF ~300KB, html2canvas ~150KB, JSZip ~100KB)
+// 这些库仅在用户点击导出时才会加载
 
 /**
  * 清理文件名
@@ -30,7 +30,15 @@ export async function exportToPdf(data, onProgress) {
         const pages = container.querySelectorAll('.a4-page')
         if (pages.length === 0) return
 
-        onProgress?.('准备渲染...')
+        onProgress?.('加载导出模块…')
+
+        // 动态导入重型库，减少初始包体积
+        const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
+            import('jspdf'),
+            import('html2canvas')
+        ])
+
+        onProgress?.('准备渲染…')
 
         let basicInfo = data?.basicInfo
         if (!basicInfo) {
@@ -97,7 +105,14 @@ export async function exportToImage(name, onProgress) {
         const pages = container.querySelectorAll('.a4-page')
         if (pages.length === 0) return
 
-        onProgress?.('正在渲染...')
+        onProgress?.('加载导出模块…')
+
+        // 动态导入 html2canvas，多页时还需要 JSZip
+        const [{ default: html2canvas }] = await Promise.all([
+            import('html2canvas')
+        ])
+
+        onProgress?.('正在渲染…')
         await document.fonts.ready
 
         const safeName = sanitizeFileName(name)
@@ -125,7 +140,8 @@ export async function exportToImage(name, onProgress) {
             return
         }
 
-        // 多页：打包成 ZIP
+        // 多页：打包成 ZIP - 动态导入 JSZip
+        const { default: JSZip } = await import('jszip')
         const zip = new JSZip()
         const folder = zip.folder(`${safeName}_简历`)
 

@@ -1,6 +1,8 @@
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, lazy, Suspense } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import AuthModal from '../AuthModal'
+
+// 动态导入 AuthModal，减少初始包体积
+const AuthModal = lazy(() => import('../AuthModal'))
 
 /**
  * RichTextEditor - 简历专用文本编辑器
@@ -128,6 +130,9 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
     const [isPolishing, setIsPolishing] = useState(false)
 
+    // AI 润色结果缓存 (相同输入不重复请求，避免消耗额度)
+    const polishCacheRef = useRef(new Map())
+
     const handlePolish = async () => {
         const textToPolish = value || ''
         if (!textToPolish.trim()) return
@@ -138,7 +143,15 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
             return
         }
 
-        // 2. 开始润色
+        // 2. 检查缓存 - 相同输入直接返回缓存结果
+        const cacheKey = textToPolish.trim()
+        const cachedResult = polishCacheRef.current.get(cacheKey)
+        if (cachedResult) {
+            onChange(cachedResult)
+            return
+        }
+
+        // 3. 开始润色
         setIsPolishing(true)
         try {
             const res = await fetch('/api/polish', {
@@ -162,8 +175,15 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
                 return
             }
 
-            // 3. 成功回填
+            // 4. 成功回填并缓存
             if (data.result) {
+                // 缓存结果，限制缓存大小避免内存泄漏
+                if (polishCacheRef.current.size > 50) {
+                    const firstKey = polishCacheRef.current.keys().next().value
+                    polishCacheRef.current.delete(firstKey)
+                }
+                polishCacheRef.current.set(cacheKey, data.result)
+
                 onChange(data.result)
                 // 刷新余额
                 if (refreshProfile) refreshProfile()
@@ -183,7 +203,7 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
             action: () => insertLinePrefix('• '),
             title: '无序列表',
             icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <circle cx="4" cy="6" r="2" fill="currentColor" stroke="none" />
                     <line x1="10" y1="6" x2="21" y2="6" />
                     <circle cx="4" cy="12" r="2" fill="currentColor" stroke="none" />
@@ -197,7 +217,7 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
             action: () => insertLinePrefix('1. '),
             title: '有序列表',
             icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <text x="2" y="8" fontSize="8" fill="currentColor" stroke="none" fontFamily="system-ui">1</text>
                     <line x1="10" y1="6" x2="21" y2="6" />
                     <text x="2" y="14" fontSize="8" fill="currentColor" stroke="none" fontFamily="system-ui">2</text>
@@ -212,7 +232,7 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
             action: () => adjustIndent(false),
             title: '减少缩进 (Shift+Tab)',
             icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <polyline points="7,8 3,12 7,16" />
                     <line x1="21" y1="6" x2="11" y2="6" />
                     <line x1="21" y1="12" x2="11" y2="12" />
@@ -224,7 +244,7 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
             action: () => adjustIndent(true),
             title: '增加缩进 (Tab)',
             icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <polyline points="3,8 7,12 3,16" />
                     <line x1="21" y1="6" x2="11" y2="6" />
                     <line x1="21" y1="12" x2="11" y2="12" />
@@ -236,15 +256,20 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
 
     return (
         <div className="rich-text-editor">
-            <AuthModal
-                isOpen={isAuthModalOpen}
-                onClose={() => setIsAuthModalOpen(false)}
-                onSuccess={() => {
-                    setIsAuthModalOpen(false)
-                    // 登录成功后自动开始润色 (UX 优化)
-                    handlePolish()
-                }}
-            />
+            {/* 仅在需要时加载 AuthModal */}
+            {isAuthModalOpen && (
+                <Suspense fallback={null}>
+                    <AuthModal
+                        isOpen={isAuthModalOpen}
+                        onClose={() => setIsAuthModalOpen(false)}
+                        onSuccess={() => {
+                            setIsAuthModalOpen(false)
+                            // 登录成功后自动开始润色 (UX 优化)
+                            handlePolish()
+                        }}
+                    />
+                </Suspense>
+            )}
 
             {/* 工具栏 */}
             <div
@@ -284,15 +309,15 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
                 >
                     {isPolishing ? (
                         <>
-                            <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                            <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            思考中...
+                            思考中…
                         </>
                     ) : (
                         <>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                                 <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
                             </svg>
                             AI 润色
@@ -366,13 +391,14 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
                 placeholder={placeholder}
                 rows={minRows}
                 className="input textarea"
+                aria-label={placeholder || "输入内容"}
                 style={{
                     borderRadius: '0 0 12px 12px',
                     resize: 'vertical',
                     minHeight: `${minRows * 1.7}em`,
                 }}
             />
-        </div>
+        </div >
     )
 }
 

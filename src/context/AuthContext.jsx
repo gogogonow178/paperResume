@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { supabase } from '../utils/supabaseClient'
 
 const AuthContext = createContext()
@@ -8,6 +8,9 @@ export function AuthProvider({ children }) {
     const [session, setSession] = useState(null)
     const [userProfile, setUserProfile] = useState(null) // public.users data (credits etc)
     const [loading, setLoading] = useState(true)
+
+    // 请求去重：跟踪进行中的 profile 请求
+    const fetchingProfileRef = useRef(null)
 
     useEffect(() => {
         // 1. Get initial session
@@ -72,6 +75,12 @@ export function AuthProvider({ children }) {
     }, [])
 
     const fetchUserProfile = async (userId, userEmail) => {
+        // 请求去重：如果同一用户已有进行中的请求，直接返回该 Promise
+        if (fetchingProfileRef.current === userId) {
+            return
+        }
+        fetchingProfileRef.current = userId
+
         try {
             const { data, error } = await supabase
                 .from('users')
@@ -80,7 +89,7 @@ export function AuthProvider({ children }) {
                 .single()
 
             if (error) {
-                // 如果是“查不到数据” (PGRST116)，说明触发器可能挂了。
+                // 如果是"查不到数据" (PGRST116)，说明触发器可能挂了。
                 // 我们在前端补救：手动插入一条初始化记录。
                 if (error.code === 'PGRST116' || error.message?.includes('JSON object requested, but 0 rows were returned')) {
                     console.warn('Profile missing. Attempting lazy initialization...')
@@ -124,6 +133,9 @@ export function AuthProvider({ children }) {
         } catch (error) {
             console.error('Error:', error)
             setUserProfile({ credits: 0, is_temp: true })
+        } finally {
+            // 请求完成，清除标记
+            fetchingProfileRef.current = null
         }
     }
 
