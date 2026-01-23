@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, lazy, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '../../context/AuthContext'
 
 // 动态导入 AuthModal 和 PricingModal，减少初始包体积
@@ -298,8 +299,8 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
                 </Suspense>
             )}
 
-            {/* Toast 提示 */}
-            {showToast && (
+            {/* Toast 提示 - 使用 Portal 渲染到 body，确保在页面正中间 */}
+            {showToast && createPortal(
                 <div style={{
                     position: 'fixed',
                     top: '50%',
@@ -324,7 +325,8 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
                     {toastMessage}
-                </div>
+                </div>,
+                document.body
             )}
 
             <div
