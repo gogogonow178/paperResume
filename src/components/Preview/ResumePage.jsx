@@ -223,7 +223,7 @@ function ResumePage() {
                     </div>
                 </div>
                 {basicInfo.avatar && (
-                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
                         <img src={basicInfo.avatar} alt="头像" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                 )}
