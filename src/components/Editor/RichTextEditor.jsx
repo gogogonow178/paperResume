@@ -1,8 +1,9 @@
 import { useRef, useCallback, useState, lazy, Suspense } from 'react'
 import { useAuth } from '../../context/AuthContext'
 
-// 动态导入 AuthModal，减少初始包体积
+// 动态导入 AuthModal 和 PricingModal，减少初始包体积
 const AuthModal = lazy(() => import('../AuthModal'))
+const PricingModal = lazy(() => import('../PricingModal'))
 
 /**
  * RichTextEditor - 简历专用文本编辑器
@@ -128,6 +129,7 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
     // ----------------------------------------------------------------
     const { user, session, refreshProfile } = useAuth && useAuth() || {} // Fail safe if context missing
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+    const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
     const [isPolishing, setIsPolishing] = useState(false)
 
     // AI 润色结果缓存 (相同输入不重复请求，避免消耗额度)
@@ -166,9 +168,9 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
             const data = await res.json()
 
             if (!res.ok) {
-                // 如果是额度不足 (403)，提示用户
+                // 如果是额度不足 (403)，弹出充值弹窗
                 if (res.status === 403) {
-                    alert('您的免费额度已用完，请关注后续付费计划！')
+                    setIsPricingModalOpen(true)
                 } else {
                     throw new Error(data.error || '请求失败')
                 }
@@ -267,6 +269,16 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
                             // 登录成功后自动开始润色 (UX 优化)
                             handlePolish()
                         }}
+                    />
+                </Suspense>
+            )}
+
+            {/* 额度不足时显示充值弹窗 */}
+            {isPricingModalOpen && (
+                <Suspense fallback={null}>
+                    <PricingModal
+                        isOpen={isPricingModalOpen}
+                        onClose={() => setIsPricingModalOpen(false)}
                     />
                 </Suspense>
             )}

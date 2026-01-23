@@ -98,7 +98,9 @@ export default async function handler(req, res) {
             temperature: 0.7,
         })
 
-        const polishedText = completion.choices[0].message.content
+        const rawText = completion.choices[0].message.content
+        // 处理多余空行：将连续空行替换为单个换行
+        const polishedText = rawText.replace(/\n\s*\n/g, '\n').trim()
 
         // 5. Log usage (Must await in Serverless environment)
         const { error: logError } = await supabase.from('usage_logs').insert({
