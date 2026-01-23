@@ -308,7 +308,7 @@ export default function UserProfile() {
                             e.currentTarget.querySelector('.refresh-icon').style.opacity = '0'
                         }}
                     >
-                        <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={avatarUrl} alt="用户头像" width="48" height="48" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
 
                         {/* Hover Overlay Icon */}
                         <div className="refresh-icon" style={{
@@ -316,7 +316,7 @@ export default function UserProfile() {
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             opacity: 0, transition: 'opacity 0.2s', color: '#fff'
                         }}>
-                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                         </div>
                     </div>
 
@@ -352,6 +352,7 @@ export default function UserProfile() {
                             <span style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '18px', color: '#000' }}>{credits}</span>
                             <button
                                 onClick={handleRefresh}
+                                aria-label="刷新积分"
                                 style={{
                                     background: 'none',
                                     border: 'none',
@@ -366,7 +367,7 @@ export default function UserProfile() {
                                 onMouseLeave={e => !isRefreshing && (e.currentTarget.style.color = '#999')}
                                 disabled={isRefreshing}
                             >
-                                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                             </button>
                         </div>
                     </div>
@@ -378,7 +379,7 @@ export default function UserProfile() {
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#666'; }}
                     >
                         退出登录
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     </button>
                 </div>
 
@@ -425,7 +426,9 @@ export default function UserProfile() {
                 >
                     <img
                         src={avatarUrl}
-                        alt="User Avatar"
+                        alt="用户头像"
+                        width="36"
+                        height="36"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                 </div>
