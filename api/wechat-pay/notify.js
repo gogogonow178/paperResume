@@ -47,9 +47,11 @@ export default async function handler(req, res) {
 
     try {
         const notification = req.body
+        console.log('Received WeChat Pay notification:', JSON.stringify(notification))
 
         // 1. 验证通知类型
         if (notification.event_type !== 'TRANSACTION.SUCCESS') {
+            console.log('Non-success event ignored:', notification.event_type)
             // 非支付成功通知，直接返回成功（避免微信重试）
             return res.status(200).json({ code: 'SUCCESS', message: '已收到' })
         }
