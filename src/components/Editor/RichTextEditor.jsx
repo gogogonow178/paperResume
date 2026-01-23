@@ -131,6 +131,8 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
     const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
     const [isPolishing, setIsPolishing] = useState(false)
+    const [showToast, setShowToast] = useState(false)
+    const [toastMessage, setToastMessage] = useState('')
 
     // AI 润色结果缓存 (相同输入不重复请求，避免消耗额度)
     const polishCacheRef = useRef(new Map())
@@ -145,10 +147,16 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
             return
         }
 
-        // 2. 前端预检查积分 - 积分为 0 时直接弹出充值弹窗，不发请求
+        // 2. 前端预检查积分 - 积分为 0 时先 toast 提示，再弹出充值弹窗
         const credits = userProfile?.credits ?? 0
         if (credits <= 0) {
-            setIsPricingModalOpen(true)
+            setToastMessage('额度不足，请充值后继续使用')
+            setShowToast(true)
+            // 1.5秒后自动弹出充值弹窗
+            setTimeout(() => {
+                setShowToast(false)
+                setIsPricingModalOpen(true)
+            }, 1500)
             return
         }
 
@@ -290,7 +298,35 @@ function RichTextEditor({ value, onChange, placeholder, minRows = 3 }) {
                 </Suspense>
             )}
 
-            {/* 工具栏 */}
+            {/* Toast 提示 */}
+            {showToast && (
+                <div style={{
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    background: 'rgba(0, 0, 0, 0.85)',
+                    color: '#fff',
+                    padding: '16px 32px',
+                    borderRadius: '12px',
+                    fontSize: '15px',
+                    fontWeight: '500',
+                    zIndex: 100000,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    animation: 'fadeIn 0.2s ease'
+                }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff9500" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    {toastMessage}
+                </div>
+            )}
+
             <div
                 style={{
                     display: 'flex',
