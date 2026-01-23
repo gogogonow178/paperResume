@@ -128,6 +128,15 @@ export default async function handler(req, res) {
     try {
         const authorization = buildAuthHeader('POST', wxPayUrl, requestBody)
 
+        console.log('Sending to WeChat Pay:', {
+            url: 'https://api.mch.weixin.qq.com' + wxPayUrl,
+            headers: {
+                Authorization: authorization,
+                'Notify-URL': notifyUrl
+            },
+            body: JSON.parse(requestBody)
+        })
+
         const wxResponse = await fetch('https://api.mch.weixin.qq.com' + wxPayUrl, {
             method: 'POST',
             headers: {
