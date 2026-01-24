@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '../context/AuthContext'
 import FingerprintJS from '@fingerprintjs/fingerprintjs'
+import PolicyModal from './PolicyModal'
 
 /**
  * AuthModal V7 - 最终原子修正版
@@ -24,6 +25,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState(null)
     const [fingerprint, setFingerprint] = useState(null)
+    const [isPolicyOpen, setIsPolicyOpen] = useState(false)
+    const [policyType, setPolicyType] = useState('用户协议与隐私政策')
     const { signInWithEmail, verifyEmailOtp } = useAuth()
     const OTP_COOLDOWN_KEY = 'auth_otp_cooldown_timestamp'
 
@@ -159,7 +162,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                 onClose() // Close modal on success
             }, 1000)
         } catch (error) {
-            setMessage({ type: 'error', text: error.message || '验证失败，请重试' })
+            const errorMsg = error.message === 'Token has expired or is invalid'
+                ? '验证码已过期或无效，请重新获取'
+                : (error.message || '验证失败，请重试');
+            setMessage({ type: 'error', text: errorMsg })
         } finally {
             setLoading(false)
         }
@@ -408,9 +414,29 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                         个人开发维护，经费有限暂不支持手机号微信（感谢理解 ❤️）
                     </p>
                     <p style={{ margin: 0, fontSize: '12px', color: '#999' }}>
-                        登录即代表您已阅读并同意用户协议与隐私政策
+                        登录即代表您已阅读并同意
+                        <span
+                            onClick={() => { setPolicyType('用户协议与隐私政策'); setIsPolicyOpen(true); }}
+                            style={{ color: '#666', cursor: 'pointer', textDecoration: 'underline', margin: '0 2px' }}
+                        >
+                            用户协议
+                        </span>
+                        与
+                        <span
+                            onClick={() => { setPolicyType('用户协议与隐私政策'); setIsPolicyOpen(true); }}
+                            style={{ color: '#666', cursor: 'pointer', textDecoration: 'underline', margin: '0 2px' }}
+                        >
+                            隐私政策
+                        </span>
                     </p>
                 </div>
+
+                {/* 政策弹窗 */}
+                <PolicyModal
+                    isOpen={isPolicyOpen}
+                    onClose={() => setIsPolicyOpen(false)}
+                    title={policyType}
+                />
 
             </div>
         </div>,

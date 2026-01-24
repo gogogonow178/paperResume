@@ -133,10 +133,15 @@ function drawHeader(pdf, info, y) {
             y += rowHeight
         }
 
-        // 绘制占位图标 (圆形/矩形，真实图标建议用 base64 img)
-        pdf.setDrawColor(200)
+        // 绘制图标 (Wechat 特殊处理，其它常规占位)
+        pdf.setDrawColor(180)
         pdf.setLineWidth(0.1)
-        pdf.circle(currentX + 1, y - 1, 0.8)
+        if (item.icon === 'wechat') {
+            pdf.circle(currentX + 1.3, y - 1.1, 0.7) // 右上方大圆
+            pdf.circle(currentX + 0.5, y - 0.7, 0.5) // 左下方小圆
+        } else {
+            pdf.circle(currentX + 1, y - 0.9, 0.8) // 常规占位圆，略微下移
+        }
 
         pdf.text(item.text, currentX + 4, y)
         currentX += itemWidth + spacing

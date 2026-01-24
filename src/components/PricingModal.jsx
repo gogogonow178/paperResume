@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { QRCodeSVG } from 'qrcode.react'
+import PolicyModal from './PolicyModal'
 
 /**
  * 价格方案弹窗 - V2 Apple/Notion 极简重构版
@@ -15,6 +16,8 @@ export default function PricingModal({ isOpen, onClose }) {
     const [qrCodeUrl, setQrCodeUrl] = useState('')
     const [outTradeNo, setOutTradeNo] = useState('')
     const [errorMessage, setErrorMessage] = useState('')
+    const [isPolicyOpen, setIsPolicyOpen] = useState(false)
+    const [policyType, setPolicyType] = useState('用户付费协议')
     const pollIntervalRef = useRef(null)
 
     // 套餐配置（生产环境金额）
@@ -375,10 +378,23 @@ export default function PricingModal({ isOpen, onClose }) {
                         </button>
 
                         <p style={{ textAlign: 'center', fontSize: '12px', color: '#999', marginTop: '16px' }}>
-                            虚拟商品一经售出不支持退款 · 支付即代表同意《用户付费协议》
+                            虚拟商品一经售出不支持退款 · 支付即代表同意
+                            <span
+                                onClick={() => { setPolicyType('用户付费协议'); setIsPolicyOpen(true); }}
+                                style={{ color: '#666', cursor: 'pointer', textDecoration: 'underline', marginLeft: '4px' }}
+                            >
+                                《用户付费协议》
+                            </span>
                         </p>
                     </div>
                 )}
+
+                {/* 政策弹窗 */}
+                <PolicyModal
+                    isOpen={isPolicyOpen}
+                    onClose={() => setIsPolicyOpen(false)}
+                    title={policyType}
+                />
 
                 {/* 二维码支付步骤 */}
                 {step === 'qrcode' && (

@@ -77,12 +77,38 @@ export async function exportToPdf(data, onProgress) {
                 windowWidth: document.documentElement.clientWidth,
                 windowHeight: document.documentElement.clientHeight,
                 // 像素级优化：强制使用特殊的渲染设置
+
                 onclone: (clonedDoc) => {
-                    const clonedPage = clonedDoc.querySelectorAll('.a4-page')[i]
+                    // 方案 1：直接查找克隆文档里的所有图标，不分页面，强制修正
+                    const icons = clonedDoc.querySelectorAll('.contact-icon');
+
+                    icons.forEach(icon => {
+                        // 预留全局对齐控制
+                        icon.style.setProperty('margin-top', '5px', 'important');
+                        icon.style.setProperty('position', 'relative', 'important');
+                        icon.style.setProperty('top', '5px', 'important');
+                    });
+
+                    // --- 微信图标位置微调 (PDF) ---
+                    const wechatIcons = clonedDoc.querySelectorAll('.wechat-icon');
+                    wechatIcons.forEach(icon => {
+                        icon.style.setProperty('margin-top', '5px', 'important');
+                        icon.style.setProperty('top', '5px', 'important');
+                    });
+
+                    // --- 微信文字位置微调 (PDF) ---
+                    const wechatTexts = clonedDoc.querySelectorAll('.wechat-text');
+                    wechatTexts.forEach(text => {
+                        text.style.setProperty('margin-top', '1px', 'important');
+                        text.style.setProperty('position', 'relative', 'important');
+                        text.style.setProperty('top', '1px', 'important');
+                    });
+
+                    // 保持原来的清理逻辑
+                    const clonedPage = clonedDoc.querySelectorAll('.a4-page')[i];
                     if (clonedPage) {
-                        clonedPage.style.boxShadow = 'none'
-                        clonedPage.style.margin = '0'
-                        clonedPage.style.transform = 'none'
+                        clonedPage.style.boxShadow = 'none';
+                        clonedPage.style.margin = '0';
                     }
                 }
             })
@@ -190,7 +216,11 @@ export async function exportToImage(name, onProgress) {
         await document.fonts.ready
 
         const safeName = sanitizeFileName(name)
-        const date = new Date().toISOString().split('T')[0]
+        // 获取本地完整时间 (YYYY-MM-DD_HHmmss)
+        const now = new Date()
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`
+        const fullTimestamp = `${dateStr}_${timeStr}`
 
         // 如果只有一页，直接下载单张图片
         if (pages.length === 1) {
@@ -198,7 +228,29 @@ export async function exportToImage(name, onProgress) {
                 scale: 4,
                 useCORS: true,
                 logging: false,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                onclone: (clonedDoc) => {
+                    const icons = clonedDoc.querySelectorAll('.contact-icon');
+                    icons.forEach(icon => {
+                        icon.style.setProperty('margin-top', '6px', 'important');
+                        icon.style.setProperty('position', 'relative', 'important');
+                        icon.style.setProperty('top', '6px', 'important');
+                    });
+
+                    // --- 微信控制点 (图片导出) ---
+                    const wechatIcons = clonedDoc.querySelectorAll('.wechat-icon');
+                    wechatIcons.forEach(icon => {
+                        icon.style.setProperty('margin-top', '4.5px', 'important');
+                        icon.style.setProperty('top', '4.5px', 'important');
+                    });
+
+                    const wechatTexts = clonedDoc.querySelectorAll('.wechat-text');
+                    wechatTexts.forEach(text => {
+                        text.style.setProperty('margin-top', '1px', 'important');
+                        text.style.setProperty('position', 'relative', 'important');
+                        text.style.setProperty('top', '1px', 'important');
+                    });
+                }
             })
 
             onProgress?.('保存中...')
@@ -206,7 +258,7 @@ export async function exportToImage(name, onProgress) {
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement('a')
                 a.href = url
-                a.download = `${safeName}_简历_${date}.png`
+                a.download = `${safeName}_简历_${fullTimestamp}.png`
                 a.click()
                 URL.revokeObjectURL(url)
                 onProgress?.('完成')
@@ -227,11 +279,35 @@ export async function exportToImage(name, onProgress) {
                 scale: 4,
                 useCORS: true,
                 logging: false,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                onclone: (clonedDoc) => {
+                    const icons = clonedDoc.querySelectorAll('.contact-icon');
+                    icons.forEach(icon => {
+                        icon.style.setProperty('margin-top', '3.5px', 'important');
+                        icon.style.setProperty('position', 'relative', 'important');
+                        icon.style.setProperty('top', '3.5px', 'important');
+                    });
+
+                    // --- 微信图标专用调试点 (多页图片导出) ---
+                    const wechatIcons = clonedDoc.querySelectorAll('.wechat-icon');
+                    wechatIcons.forEach(icon => {
+                        icon.style.setProperty('margin-top', '4.5px', 'important');
+                        icon.style.setProperty('top', '4.5px', 'important');
+                    });
+
+                    // --- 微信文字专用调试点 (多页图片导出) ---
+                    const wechatTexts = clonedDoc.querySelectorAll('.wechat-text');
+                    wechatTexts.forEach(text => {
+                        text.style.setProperty('margin-top', '0px', 'important');
+                        text.style.setProperty('position', 'relative', 'important');
+                        text.style.setProperty('top', '0px', 'important');
+                    });
+                }
             })
 
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
-            folder.file(`第${i + 1}页.png`, blob)
+            // 显式传入本地时间，修复 ZIP 内部文件 8 小时时差问题
+            folder.file(`第${i + 1}页.png`, blob, { date: new Date() })
         }
 
         onProgress?.('正在打包...')
@@ -240,7 +316,7 @@ export async function exportToImage(name, onProgress) {
         const url = URL.createObjectURL(zipBlob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `${safeName}_简历_${date}.zip`
+        a.download = `${safeName}_简历_${fullTimestamp}.zip`
         a.click()
         URL.revokeObjectURL(url)
         onProgress?.('完成')
