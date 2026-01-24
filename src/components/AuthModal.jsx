@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { useAuth } from '../context/AuthContext'
+import FingerprintJS from '@fingerprintjs/fingerprintjs'
+import PolicyModal from './PolicyModal'
 
 /**
  * AuthModal V7 - 最终原子修正版
@@ -22,6 +21,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     const [timer, setTimer] = useState(0) // 倒计时状态
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState(null)
+    const [fingerprint, setFingerprint] = useState(null)
+    const [isPolicyOpen, setIsPolicyOpen] = useState(false)
+    const [policyType, setPolicyType] = useState('用户协议与隐私政策')
     const { signInWithEmail, verifyEmailOtp } = useAuth()
     const OTP_COOLDOWN_KEY = 'auth_otp_cooldown_timestamp'
 
@@ -39,6 +41,18 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                 localStorage.removeItem(OTP_COOLDOWN_KEY)
             }
         }
+
+        // 初始化指纹
+        const initFingerprint = async () => {
+            try {
+                const fp = await FingerprintJS.load()
+                const result = await fp.get()
+                setFingerprint(result.visitorId)
+            } catch (error) {
+                console.error('Fingerprint init failed:', error)
+            }
+        }
+        initFingerprint()
     }, [])
 
     // 防止滚动穿透
@@ -79,8 +93,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
         setMessage(null)
 
         try {
-            // 真实发送请求，等待结果
-            const { error } = await signInWithEmail(email)
+            // 真实发送请求，等待结果，传入指纹识别
+            const { error } = await signInWithEmail(email, fingerprint)
             if (error) throw error
 
             // --- 发送成功后才执行 ---
@@ -92,7 +106,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
             setStep('otp')
             setOtp('')
             setTimer(60)
-            setMessage({ type: 'success', text: '验证码已发送，请查收' })
+            setMessage({ type: 'success', text: '验证码已发送，收不到请查看垃圾箱 📬' })
 
         } catch (error) {
             console.error('Send OTP error:', error)
@@ -112,9 +126,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
         setLoading(true)
         setMessage(null)
         try {
-            const { error } = await signInWithEmail(email)
+            const { error } = await signInWithEmail(email, fingerprint)
             if (error) throw error
-            setMessage({ type: 'success', text: '验证码已重新发送' })
+            setMessage({ type: 'success', text: '验证码已重新发送，收不到请查看垃圾箱 📬' })
             setTimer(60) // 重置倒计时
             localStorage.setItem(OTP_COOLDOWN_KEY, (Date.now() + 60000).toString())
         } catch (error) {
@@ -145,7 +159,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                 onClose() // Close modal on success
             }, 1000)
         } catch (error) {
-            setMessage({ type: 'error', text: error.message || '验证失败，请重试' })
+            const errorMsg = error.message === 'Token has expired or is invalid'
+                ? '验证码已过期或无效，请重新获取'
+                : (error.message || '验证失败，请重试');
+            setMessage({ type: 'error', text: errorMsg })
         } finally {
             setLoading(false)
         }
@@ -394,12 +411,31 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                         个人开发维护，经费有限暂不支持手机号微信（感谢理解 ❤️）
                     </p>
                     <p style={{ margin: 0, fontSize: '12px', color: '#999' }}>
-                        登录即代表您已阅读并同意用户协议与隐私政策
+                        登录即代表您已阅读并同意
+                        <span
+                            onClick={() => { setPolicyType('用户协议与隐私政策'); setIsPolicyOpen(true); }}
+                            style={{ color: '#666', cursor: 'pointer', textDecoration: 'underline', margin: '0 2px' }}
+                        >
+                            用户协议
+                        </span>
+                        与
+                        <span
+                            onClick={() => { setPolicyType('用户协议与隐私政策'); setIsPolicyOpen(true); }}
+                            style={{ color: '#666', cursor: 'pointer', textDecoration: 'underline', margin: '0 2px' }}
+                        >
+                            隐私政策
+                        </span>
                     </p>
                 </div>
 
-            </div>
-        </div>,
+                {/* 政策弹窗 */}
+                <PolicyModal
+                    isOpen={isPolicyOpen}
+                    onClose={() => setIsPolicyOpen(false)}
+                    title={policyType}
+                />
+            </div >
+        </div >,
         document.body
     )
 }

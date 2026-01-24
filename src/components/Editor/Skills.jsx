@@ -2,7 +2,7 @@ import useResumeStore from '../../store/useResumeStore'
 import CollapsibleSection from './CollapsibleSection'
 
 function Skills() {
-    const skills = useResumeStore((state) => state.skills)
+    const skills = useResumeStore((state) => state.resumes[state.currentResumeId]?.data?.skills || [])
     const addSkill = useResumeStore((state) => state.addSkill)
     const updateSkill = useResumeStore((state) => state.updateSkill)
     const removeSkill = useResumeStore((state) => state.removeSkill)
@@ -13,7 +13,7 @@ function Skills() {
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {skills.map((item) => (
                     <div key={item.id}
-                        className="card bg-white shadow-sm ring-1 ring-black/5 rounded-xl relative group transition-all hover:ring-black/10 hover:shadow-md"
+                        className="card bg-white relative group transition-all"
                         style={{ padding: '24px' }}>
 
                         {/* 删除按钮 - 悬浮在右上角 */}

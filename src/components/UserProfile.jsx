@@ -154,10 +154,11 @@ export default function UserProfile() {
         },
         card: {
             backgroundColor: '#FFFFFF',
-            borderRadius: '16px',
-            boxShadow: '0 12px 48px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04)',
+            borderRadius: '24px',
+            boxShadow: '0 40px 100px -20px rgba(0,0,0,0.15)',
+            border: '1px solid rgba(0,0,0,0.05)',
             overflow: 'hidden',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            fontFamily: 'system-ui, -apple-system, sans-serif'
         },
         header: {
             padding: '20px 24px',
@@ -213,7 +214,7 @@ export default function UserProfile() {
             color: '#fff',
             fontSize: '14px',
             fontWeight: '600',
-            borderRadius: '10px',
+            borderRadius: '14px',
             border: 'none',
             cursor: 'pointer',
             transition: 'transform 0.1s',

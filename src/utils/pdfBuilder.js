@@ -1,7 +1,8 @@
 /**
- * PDF 布局辅助工具
- * 用于 jsPDF 文本绘制的布局计算
+ * PDF 渲染引擎 (Notion 级矢量方案)
+ * 使用 jsPDF 原生指令绘制，确保文字和图标 100% 矢量清晰。
  */
+import { jsPDF } from 'jspdf'
 
 // A4 尺寸 (mm)
 export const A4 = {
@@ -10,198 +11,272 @@ export const A4 = {
     margin: {
         top: 20,
         bottom: 20,
-        left: 22,
-        right: 22,
+        left: 20,
+        right: 20,
     },
     get contentWidth() {
         return this.width - this.margin.left - this.margin.right
-    },
-    get contentHeight() {
-        return this.height - this.margin.top - this.margin.bottom
     }
 }
 
-// 字体大小配置
-export const FONT_SIZES = {
-    name: 20,
-    jobTitle: 12,
-    sectionTitle: 12,
-    itemTitle: 11,
-    itemSubtitle: 10,
-    body: 10,
-    small: 9,
-}
-
-// 行高配置
-export const LINE_HEIGHTS = {
-    name: 10,
-    sectionTitle: 8,
-    body: 5,
-}
-
-// 颜色配置
-export const COLORS = {
-    primary: '#1D1D1F',
-    secondary: '#86868B',
-    accent: '#0071E3',
-    border: '#E5E5E5',
-}
+// 字体配置
+const FONT = 'SourceHanSansSC'
 
 /**
- * 文本自动换行
- * @param {jsPDF} pdf - jsPDF 实例
- * @param {string} text - 要绘制的文本
- * @param {number} maxWidth - 最大宽度 (mm)
- * @returns {string[]} 换行后的文本数组
+ * 核心构建函数
  */
-export function wrapText(pdf, text, maxWidth) {
-    if (!text) return []
+export async function buildResumePdf(data) {
+    const { basicInfo, education, workExperience, projects, skills, summary, customSections, sectionOrder, hiddenSections } = data
 
-    const lines = []
-    const paragraphs = text.split('\n')
+    // 1. 初始化 PDF
+    const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+    })
 
-    for (const paragraph of paragraphs) {
-        if (!paragraph.trim()) {
-            lines.push('')
-            continue
-        }
+    // 2. 加载中文字体 (SourceHanSansSC)
+    // 注意：实际项目中建议将字体 base64 存放在独立文件以减小本文件体积
+    try {
+        const { FONT_NORMAL_BASE64, FONT_BOLD_BASE64 } = await import('./fonts/SourceHanSansSC-Normal.js')
+        pdf.addFileToVFS(`${FONT}-Normal.ttf`, FONT_NORMAL_BASE64)
+        pdf.addFont(`${FONT}-Normal.ttf`, FONT, 'normal')
 
-        const words = paragraph.split('')
-        let currentLine = ''
+        pdf.addFileToVFS(`${FONT}-Bold.ttf`, FONT_BOLD_BASE64)
+        pdf.addFont(`${FONT}-Bold.ttf`, FONT, 'bold')
+    } catch (e) {
+        console.warn('Font loading failed, falling back to standard font', e)
+    }
 
-        for (const char of words) {
-            const testLine = currentLine + char
-            const testWidth = pdf.getTextWidth(testLine)
+    let y = A4.margin.top
 
-            if (testWidth > maxWidth && currentLine) {
-                lines.push(currentLine)
-                currentLine = char
-            } else {
-                currentLine = testLine
-            }
-        }
+    // --- 渲染逻辑 ---
 
-        if (currentLine) {
-            lines.push(currentLine)
+    // 1. Header (姓名 & 职位 & 联系方式)
+    y = drawHeader(pdf, basicInfo, y)
+
+    // 2. 按顺序渲染各模块
+    const SECTION_MAP = {
+        summary: () => {
+            if (summary) y = drawSection(pdf, '个人总结', summary, y)
+        },
+        education: () => {
+            if (education?.length) y = drawExperienceList(pdf, '教育经历', education, y, { titleKey: 'school', subtitleKey: 'major', degreeKey: 'degree' })
+        },
+        workExperience: () => {
+            if (workExperience?.length) y = drawExperienceList(pdf, '工作经历', workExperience, y, { titleKey: 'company', subtitleKey: 'position' })
+        },
+        projects: () => {
+            if (projects?.length) y = drawExperienceList(pdf, '项目经历', projects, y, { titleKey: 'name', subtitleKey: 'role' })
+        },
+        skills: () => {
+            if (skills?.length) y = drawSkills(pdf, '专业技能', skills, y)
         }
     }
 
-    return lines
+    sectionOrder.forEach(id => {
+        if (!hiddenSections.includes(id) && SECTION_MAP[id]) {
+            SECTION_MAP[id]()
+        }
+    })
+
+    // 3. 自定义模块
+    customSections.forEach(section => {
+        y = drawSection(pdf, section.title, section.content, y)
+    })
+
+    return pdf
 }
 
 /**
- * 检测是否需要分页
- * @param {jsPDF} pdf - jsPDF 实例
- * @param {number} y - 当前 Y 坐标
- * @param {number} neededHeight - 需要的高度
- * @returns {number} 新的 Y 坐标
+ * 绘制页眉 (基本信息)
  */
-export function checkPageBreak(pdf, y, neededHeight = 20) {
-    const maxY = A4.height - A4.margin.bottom
+function drawHeader(pdf, info, y) {
+    // 姓名
+    pdf.setFont(FONT, 'bold')
+    pdf.setFontSize(22)
+    pdf.setTextColor(29, 29, 31)
+    pdf.text(info.name || '', A4.margin.left, y)
+    y += 10
 
-    if (y + neededHeight > maxY) {
+    // 职位
+    pdf.setFont(FONT, 'normal')
+    pdf.setFontSize(11)
+    pdf.setTextColor(0, 0, 0)
+    pdf.text(info.jobTitle || '', A4.margin.left, y)
+    y += 8
+
+    // 联系方式 (多项排列)
+    pdf.setFontSize(9)
+    pdf.setTextColor(134, 134, 139)
+
+    const items = []
+    if (info.phone) items.push({ text: info.phone, icon: 'phone' })
+    if (info.email) items.push({ text: info.email, icon: 'email' })
+    if (info.city) items.push({ text: info.city, icon: 'city' })
+    if (info.wechat) items.push({ text: info.wechat, icon: 'wechat' })
+    if (info.website) items.push({ text: info.website, icon: 'website' })
+
+    const startX = A4.margin.left
+    let currentX = startX
+    const rowHeight = 6
+    const spacing = 6
+
+    items.forEach((item, index) => {
+        const textWidth = pdf.getTextWidth(item.text)
+        const itemWidth = textWidth + 8 // 8mm 预留给图标和间距
+
+        // 如果换行
+        if (currentX + itemWidth > A4.width - A4.margin.right) {
+            currentX = startX
+            y += rowHeight
+        }
+
+        // 绘制图标 (Wechat 特殊处理，其它常规占位)
+        pdf.setDrawColor(180)
+        pdf.setLineWidth(0.1)
+        if (item.icon === 'wechat') {
+            pdf.circle(currentX + 1.3, y - 1.1, 0.7) // 右上方大圆
+            pdf.circle(currentX + 0.5, y - 0.7, 0.5) // 左下方小圆
+        } else {
+            pdf.circle(currentX + 1, y - 0.9, 0.8) // 常规占位圆，略微下移
+        }
+
+        pdf.text(item.text, currentX + 4, y)
+        currentX += itemWidth + spacing
+    })
+
+    return y + 12
+}
+
+/**
+ * 常用：检查分页并增加新页
+ */
+function ensureSpace(pdf, y, height) {
+    if (y + height > A4.height - A4.margin.bottom) {
         pdf.addPage()
         return A4.margin.top
     }
-
     return y
 }
 
 /**
- * 绘制分隔线
+ * 绘制模块标题与横线
  */
-export function drawDivider(pdf, y, x1 = A4.margin.left, x2 = A4.width - A4.margin.right) {
-    pdf.setDrawColor(229, 229, 234) // #E5E5EA
-    pdf.setLineWidth(0.3)
-    pdf.line(x1, y, x2, y)
-    return y + 3
-}
+function drawSectionHeader(pdf, title, y) {
+    y = ensureSpace(pdf, y, 15)
 
-/**
- * 绘制模块标题
- */
-export function drawSectionTitle(pdf, title, y) {
-    y = checkPageBreak(pdf, y, 15)
-
-    pdf.setFontSize(FONT_SIZES.sectionTitle)
-    pdf.setTextColor(29, 29, 31) // #1D1D1F
-    pdf.setFont('SourceHanSansSC', 'bold')
-    pdf.text(title, A4.margin.left, y)
-
-    y += 4
-    y = drawDivider(pdf, y)
-
-    return y + 2
-}
-
-/**
- * 绘制工作/项目经历条目
- */
-export function drawExperienceItem(pdf, item, y, options = {}) {
-    const { titleKey = 'company', subtitleKey = 'position', dateKey = 'startDate', endDateKey = 'endDate' } = options
-
-    y = checkPageBreak(pdf, y, 25)
-
-    // 标题行
-    pdf.setFontSize(FONT_SIZES.itemTitle)
+    pdf.setFont(FONT, 'bold')
+    pdf.setFontSize(11)
     pdf.setTextColor(29, 29, 31)
-    pdf.setFont('SourceHanSansSC', 'bold')
-
-    const title = item[titleKey] || ''
-    const subtitle = item[subtitleKey] || ''
-    const date = item[dateKey] ? `${item[dateKey]} - ${item[endDateKey] || '至今'}` : ''
-
     pdf.text(title, A4.margin.left, y)
 
-    if (subtitle) {
-        const titleWidth = pdf.getTextWidth(title + ' · ')
-        pdf.setFont('SourceHanSansSC', 'normal')
-        pdf.setTextColor(134, 134, 139)
-        pdf.text('· ' + subtitle, A4.margin.left + pdf.getTextWidth(title + ' '), y)
-    }
+    y += 2
+    pdf.setDrawColor(229, 229, 234)
+    pdf.setLineWidth(0.2)
+    pdf.line(A4.margin.left, y, A4.width - A4.margin.right, y)
 
-    // 日期（右对齐）
-    if (date) {
-        pdf.setFontSize(FONT_SIZES.small)
-        pdf.setTextColor(134, 134, 139)
-        const dateWidth = pdf.getTextWidth(date)
-        pdf.text(date, A4.width - A4.margin.right - dateWidth, y)
-    }
+    return y + 6
+}
 
-    y += 5
+/**
+ * 绘制简单文本段落
+ */
+function drawSection(pdf, title, content, y) {
+    y = drawSectionHeader(pdf, title, y)
 
-    // 描述
-    if (item.description) {
-        pdf.setFontSize(FONT_SIZES.body)
-        pdf.setTextColor(66, 66, 69) // #424245
-        pdf.setFont('SourceHanSansSC', 'normal')
+    pdf.setFont(FONT, 'normal')
+    pdf.setFontSize(10)
+    pdf.setTextColor(66, 66, 69)
 
-        const lines = wrapText(pdf, item.description, A4.contentWidth)
-        for (const line of lines) {
-            y = checkPageBreak(pdf, y, 5)
-            pdf.text(line, A4.margin.left, y)
-            y += 4
-        }
-    }
+    const lines = pdf.splitTextToSize(content || '', A4.contentWidth)
+    lines.forEach(line => {
+        y = ensureSpace(pdf, y, 5)
+        pdf.text(line, A4.margin.left, y)
+        y += 5
+    })
 
     return y + 4
 }
 
 /**
- * 绘制技能条目
+ * 绘制经历列表 (工作/教育/项目)
  */
-export function drawSkillItem(pdf, item, y) {
-    y = checkPageBreak(pdf, y, 8)
+function drawExperienceList(pdf, title, list, y, keys) {
+    y = drawSectionHeader(pdf, title, y)
 
-    pdf.setFontSize(FONT_SIZES.body)
-    pdf.setTextColor(29, 29, 31)
-    pdf.setFont('SourceHanSansSC', 'bold')
-    pdf.text(item.title + '：', A4.margin.left, y)
+    list.forEach(item => {
+        y = ensureSpace(pdf, y, 10)
 
-    const titleWidth = pdf.getTextWidth(item.title + '：')
-    pdf.setFont('SourceHanSansSC', 'normal')
-    pdf.setTextColor(66, 66, 69)
-    pdf.text(item.content || '', A4.margin.left + titleWidth, y)
+        // 标题 (公司/学校/项目名)
+        pdf.setFont(FONT, 'bold')
+        pdf.setFontSize(10)
+        pdf.setTextColor(29, 29, 31)
+        pdf.text(item[keys.titleKey] || '', A4.margin.left, y)
 
-    return y + 5
+        // 副标题 (职位/专业)
+        const titleWidth = pdf.getTextWidth(item[keys.titleKey] || '')
+        let subtitle = item[keys.subtitleKey] || ''
+        if (keys.degreeKey && item[keys.degreeKey]) subtitle += ` ${item[keys.degreeKey]}`
+
+        if (subtitle) {
+            pdf.setFont(FONT, 'normal')
+            pdf.setTextColor(134, 134, 139)
+            pdf.text(`· ${subtitle}`, A4.margin.left + titleWidth + 2, y)
+        }
+
+        // 日期 (右对齐)
+        const date = item.startDate ? `${item.startDate} - ${item.endDate || '至今'}` : (item.date || '')
+        if (date) {
+            const dateWidth = pdf.getTextWidth(date)
+            pdf.setFontSize(9)
+            pdf.setTextColor(134, 134, 139)
+            pdf.text(date, A4.width - A4.margin.right - dateWidth, y)
+        }
+
+        y += 5
+
+        // 描述
+        if (item.description) {
+            pdf.setFontSize(10)
+            pdf.setTextColor(66, 66, 69)
+            pdf.setFont(FONT, 'normal')
+            const lines = pdf.splitTextToSize(item.description, A4.contentWidth)
+            lines.forEach(line => {
+                y = ensureSpace(pdf, y, 5)
+                pdf.text(line, A4.margin.left, y)
+                y += 5
+            })
+        }
+
+        y += 4
+    })
+
+    return y + 2
+}
+
+/**
+ * 绘制技能条
+ */
+function drawSkills(pdf, title, list, y) {
+    y = drawSectionHeader(pdf, title, y)
+
+    list.forEach(item => {
+        y = ensureSpace(pdf, y, 5)
+
+        pdf.setFont(FONT, 'bold')
+        pdf.setFontSize(10)
+        pdf.setTextColor(29, 29, 31)
+        pdf.text(`${item.title}：`, A4.margin.left, y)
+
+        const titleWidth = pdf.getTextWidth(`${item.title}：`)
+        pdf.setFont(FONT, 'normal')
+        pdf.setTextColor(66, 66, 69)
+        pdf.text(item.content || '', A4.margin.left + titleWidth, y)
+
+        y += 5
+    })
+
+    return y + 2
 }

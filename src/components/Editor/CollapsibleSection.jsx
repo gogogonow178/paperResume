@@ -15,7 +15,7 @@ function CollapsibleSection({ title, sectionId, count, defaultExpanded = true, c
     const dragHandle = useContext(DragHandleContext)
 
     // 从 Store 获取隐藏状态和切换方法
-    const hiddenSections = useResumeStore((state) => state.hiddenSections)
+    const hiddenSections = useResumeStore((state) => state.resumes[state.currentResumeId]?.data?.hiddenSections || [])
     const toggleSectionVisibility = useResumeStore((state) => state.toggleSectionVisibility)
     const isHidden = sectionId && hiddenSections.includes(sectionId)
 
@@ -39,8 +39,8 @@ function CollapsibleSection({ title, sectionId, count, defaultExpanded = true, c
                         transition: 'all 0.2s',
                     }}
                     onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(0,113,227,0.04)'
-                        e.currentTarget.style.borderColor = '#0071E3'
+                        e.currentTarget.style.background = 'rgba(0,0,0,0.04)'
+                        e.currentTarget.style.borderColor = '#000000'
                     }}
                     onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'rgba(0,0,0,0.02)'
@@ -51,7 +51,7 @@ function CollapsibleSection({ title, sectionId, count, defaultExpanded = true, c
                         <span style={{ opacity: 0.6, marginRight: '8px' }}>👁️‍🗨️</span>
                         {title}（已隐藏）
                     </span>
-                    <span style={{ color: '#0071E3', fontSize: '13px', fontWeight: 500 }}>
+                    <span style={{ color: '#000000', fontSize: '13px', fontWeight: 600 }}>
                         点击恢复
                     </span>
                 </div>
@@ -118,8 +118,9 @@ function CollapsibleSection({ title, sectionId, count, defaultExpanded = true, c
 
             {/* 可折叠内容区 */}
             <div
-                className={`overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
+                className={`transition-all duration-300 ease-out ${isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
                     }`}
+                style={{ overflow: isExpanded ? 'visible' : 'hidden' }}
             >
                 {children}
             </div>

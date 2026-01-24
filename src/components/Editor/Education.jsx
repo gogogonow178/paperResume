@@ -6,7 +6,7 @@ import CollapsibleSection from './CollapsibleSection'
  * 支持添加/删除/编辑多条记录
  */
 function Education() {
-    const education = useResumeStore((state) => state.education)
+    const education = useResumeStore((state) => state.resumes[state.currentResumeId]?.data?.education || [])
     const addEducation = useResumeStore((state) => state.addEducation)
     const updateEducation = useResumeStore((state) => state.updateEducation)
     const removeEducation = useResumeStore((state) => state.removeEducation)
@@ -16,7 +16,7 @@ function Education() {
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {education.map((item) => (
                     <div key={item.id}
-                        className="card bg-white shadow-sm ring-1 ring-black/5 rounded-xl relative group transition-all hover:ring-black/10 hover:shadow-md"
+                        className="card bg-white relative group transition-all"
                         style={{ padding: '24px' }}>
 
                         {/* 顶部操作栏 */}

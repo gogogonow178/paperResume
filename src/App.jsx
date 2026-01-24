@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import EditorPanel from './components/Layout/EditorPanel'
 import PreviewPanel from './components/Layout/PreviewPanel'
 import MobileBlock from './components/MobileBlock'
+import FloatingFab from './components/Common/FloatingFab'
 
 /**
  * App 根组件
@@ -35,6 +36,9 @@ function App() {
 
             {/* 右侧预览区 */}
             <PreviewPanel />
+
+            {/* 萌系浮动挂件 */}
+            <FloatingFab />
         </div>
     )
 }

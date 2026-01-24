@@ -145,7 +145,12 @@ export function AuthProvider({ children }) {
         userProfile,
         loading,
         refreshProfile: () => user && fetchUserProfile(user.id, user.email),
-        signInWithEmail: (email) => supabase.auth.signInWithOtp({ email }),
+        signInWithEmail: (email, fingerprint) => supabase.auth.signInWithOtp({
+            email,
+            options: {
+                data: { fingerprint }
+            }
+        }),
         verifyEmailOtp: (email, token) => supabase.auth.verifyOtp({ email, token, type: 'email' }),
         signOut: () => supabase.auth.signOut(),
     }
