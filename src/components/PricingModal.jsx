@@ -381,7 +381,7 @@ export default function PricingModal({ isOpen, onClose }) {
                             虚拟商品一经售出不支持退款 · 支付即代表同意
                             <span
                                 onClick={() => { setPolicyType('用户付费协议'); setIsPolicyOpen(true); }}
-                                style={{ color: '#666', cursor: 'pointer', textDecoration: 'underline', marginLeft: '4px' }}
+                                style={{ color: '#0071E3', cursor: 'pointer', textDecoration: 'underline', marginLeft: '4px' }}
                             >
                                 《用户付费协议》
                             </span>

@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { useAuth } from '../context/AuthContext'
 import FingerprintJS from '@fingerprintjs/fingerprintjs'
 import PolicyModal from './PolicyModal'
 
@@ -405,23 +408,22 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                     </form>
                 </div>
 
-                {/* 底部协议 */}
                 <div style={{ textAlign: 'center', borderTop: '1px solid #f0f0f0', paddingTop: '20px' }}>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#666', opacity: 1 }}>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#999', opacity: 1 }}>
                         个人开发维护，经费有限暂不支持手机号微信（感谢理解 ❤️）
                     </p>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#999' }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                         登录即代表您已阅读并同意
                         <span
                             onClick={() => { setPolicyType('用户协议与隐私政策'); setIsPolicyOpen(true); }}
-                            style={{ color: '#666', cursor: 'pointer', textDecoration: 'underline', margin: '0 2px' }}
+                            style={{ color: '#0071E3', cursor: 'pointer', textDecoration: 'underline' }}
                         >
                             用户协议
                         </span>
                         与
                         <span
                             onClick={() => { setPolicyType('用户协议与隐私政策'); setIsPolicyOpen(true); }}
-                            style={{ color: '#666', cursor: 'pointer', textDecoration: 'underline', margin: '0 2px' }}
+                            style={{ color: '#0071E3', cursor: 'pointer', textDecoration: 'underline' }}
                         >
                             隐私政策
                         </span>

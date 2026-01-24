@@ -1,8 +1,8 @@
 {
-  "name": "paper-resume",
+  "name": "minicv",
   "private": true,
   "version": "1.0.0",
-  "description": "A minimalist, privacy-focused resume builder built with React and Tailwind CSS. Free, local-first, and exportable to PDF. 极简简历生成器，无后端，隐私安全。",
+  "description": "A minimalist, privacy-focused resume builder built with React and Tailwind CSS. Free, local-first, and exportable to PDF. 极简简历生成器，无后端，隐私安全（MiniCV）。",
   "keywords": [
     "resume-builder",
     "resume",

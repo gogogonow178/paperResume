@@ -93,7 +93,7 @@ export default function PolicyModal({ isOpen, onClose, title, content }) {
                 <>
                     <div style={styles.section}>
                         <span style={styles.sectionTitle}>1. 服务说明</span>
-                        <p>PaperResume 是一个基于 AI 的简历润色工具。您的邮箱仅用于账户登录、验证码接收及业务通知，我们承诺不向第三方泄露您的邮箱信息。</p>
+                        <p>MiniCV 是一个基于 AI 的简历润色工具。您的邮箱仅用于账户登录、验证码接收及业务通知，我们承诺不向第三方泄露您的邮箱信息。</p>
                     </div>
                     <div style={styles.section}>
                         <span style={styles.sectionTitle}>2. 账户安全</span>

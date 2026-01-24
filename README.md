@@ -86,7 +86,7 @@ npm run preview
 ## 📁 项目结构
 
 ```
-paperResume/
+minicv/
 ├── public/                 # 静态资源
 ├── src/
 │   ├── components/

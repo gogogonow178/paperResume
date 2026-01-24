@@ -2,20 +2,18 @@ import { useState, useEffect, useRef } from 'react'
 import ResumePage from '../Preview/ResumePage'
 import ExportButtons from '../Toolbar/ExportButtons'
 import UserProfile from '../UserProfile'
-import { useAuth } from '../../context/AuthContext' // 修正路径：回退两级
+import { useAuth } from '../../context/AuthContext'
 
 /**
  * PreviewPanel - 右侧预览区
  * 
  * 布局优化 v2：
- * - 删除"实时预览"状态提示（默认行为无需说明）
- * - 工具栏仅保留核心功能：导出 + 帮助 + 用户
- * - 增加注册优惠提示条（未登录时显示在最左侧）
+ * - 统一高度为 64px 且垂直居中
+ * - 移除冗余的注册优惠提示（已整合至 UserProfile）
  */
 function PreviewPanel() {
-    const { user } = useAuth() // 获取登录状态
+    const { user } = useAuth()
 
-    // 注册优惠提示组件（内部定义，保持独立）
     const PromotionTag = () => (
         <div style={{ display: 'flex', alignItems: 'center', marginRight: '16px' }}>
             <style>{`
@@ -49,7 +47,7 @@ function PreviewPanel() {
             <header className="z-50 flex-shrink-0 bg-white border-b border-gray-100" style={{ height: '64px', display: 'flex', alignItems: 'center', padding: '0 24px', overflow: 'visible' }}>
                 <div className="flex items-center justify-end w-full" style={{ maxWidth: '210mm', margin: '0 auto' }}>
 
-                    {/* 未登录时显示优惠提示 */}
+                    {/* 未登录时显示优惠提示 - 移至导出按钮左侧 */}
                     {!user && <PromotionTag />}
 
                     {/* 导出按钮 */}

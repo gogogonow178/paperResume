@@ -744,7 +744,7 @@ const useResumeStore = create(
             },
         }),
         {
-            name: 'paper-resume-storage', // localStorage key
+            name: 'minicv-storage', // localStorage key
             // 数据迁移：处理老版本数据结构
             onRehydrateStorage: () => (state, error) => {
                 if (error) {

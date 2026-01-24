@@ -227,29 +227,7 @@ export default function UserProfile() {
 
     if (!user) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <style>{`
-                    @keyframes subtle-bounce {
-                        0%, 5%, 15%, 25%, 100% { transform: translateY(0); }
-                        10% { transform: translateY(-3px); }
-                        20% { transform: translateY(-1.5px); }
-                    }
-                `}</style>
-                <div style={{
-                    color: '#BE123C',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    padding: '6px 14px',
-                    backgroundColor: '#FFF1F2',
-                    borderRadius: '100px',
-                    border: '1px solid #FFE4E6',
-                    whiteSpace: 'nowrap',
-                    animation: 'subtle-bounce 5s infinite ease-in-out',
-                    cursor: 'default',
-                    boxShadow: '0 2px 6px rgba(190, 18, 60, 0.05)'
-                }}>
-                    🎁 注册即送 5 次 AI 深度润色
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
                 <button
                     onClick={() => setIsAuthModalOpen(true)}
                     style={styles.loginBtn}
