@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import EditorPanel from './components/Layout/EditorPanel'
 import PreviewPanel from './components/Layout/PreviewPanel'
 import MobileBlock from './components/MobileBlock'
-import FloatingFab from './components/Common/FloatingFab'
+import FloatingFab from './components/common/FloatingFab'
 
 /**
  * App 根组件
