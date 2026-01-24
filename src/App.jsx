@@ -3,6 +3,7 @@ import EditorPanel from './components/Layout/EditorPanel'
 import PreviewPanel from './components/Layout/PreviewPanel'
 import MobileBlock from './components/MobileBlock'
 import FloatingFab from './components/common/FloatingFab'
+import WelcomeModal from './components/common/WelcomeModal'
 
 /**
  * App 根组件
@@ -36,6 +37,9 @@ function App() {
 
             {/* 右侧预览区 */}
             <PreviewPanel />
+
+            {/* 首次打开声明 */}
+            <WelcomeModal />
 
             {/* 萌系浮动挂件 */}
             <FloatingFab />

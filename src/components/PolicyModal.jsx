@@ -105,7 +105,13 @@ export default function PolicyModal({ isOpen, onClose, title, content }) {
                     </div>
                     <div style={styles.section}>
                         <span style={styles.sectionTitle}>4. 免责声明</span>
-                        <p>AI 生成的内容仅供参考，请您在投递简历前务必自行核实信息的准确性。对于因使用 AI 建议而产生的招聘结果，MiniCV平台不承担法律责任。</p>
+                        <p>AI 生成的内容仅供参考，请您在投递简历前务必自行核实信息的准确性。对于因使用 AI 建议而产生的招聘结果，MiniCV 平台不承担法律责任。</p>
+                    </div>
+                    <div style={styles.section}>
+                        <span style={styles.sectionTitle}>5. 数据存储与安全特别说明</span>
+                        <p>• <strong>本地性</strong>：MiniCV 是一个“本地优先”的工具。所有编辑内容均保存在您的本地浏览器中，不具备云端同步功能。</p>
+                        <p>• <strong>免责申明</strong>：因用户主动清除浏览器数据、更换电脑、删除应用缓存或系统环境异常导致的数据丢失，由用户自行承担。本站不承担任何数据恢复义务。</p>
+                        <p>• <strong>隐私保护</strong>：这种设计是为了最大程度保护您的个人隐私，确保您的简历数据不经过任何第三方服务器。</p>
                     </div>
                 </>
             );
