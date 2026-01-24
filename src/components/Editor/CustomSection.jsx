@@ -3,7 +3,7 @@ import CollapsibleSection from './CollapsibleSection'
 import RichTextEditor from './RichTextEditor'
 
 function CustomSection() {
-    const customSections = useResumeStore((state) => state.customSections)
+    const customSections = useResumeStore((state) => state.resumes[state.currentResumeId]?.data?.customSections || [])
     const addCustomSection = useResumeStore((state) => state.addCustomSection)
     const updateCustomSection = useResumeStore((state) => state.updateCustomSection)
     const removeCustomSection = useResumeStore((state) => state.removeCustomSection)
@@ -14,7 +14,7 @@ function CustomSection() {
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {customSections.map((item) => (
                     <div key={item.id}
-                        className="card bg-white shadow-sm ring-1 ring-black/5 rounded-xl relative group transition-all hover:ring-black/10 hover:shadow-md"
+                        className="card bg-white relative group transition-all"
                         style={{ padding: '24px' }}>
 
                         {/* 顶部操作栏 */}

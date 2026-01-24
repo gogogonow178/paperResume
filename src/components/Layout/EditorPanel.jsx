@@ -1,4 +1,5 @@
-import { useState, useContext, createContext } from 'react'
+import { useState, useContext, createContext, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
     DndContext,
     closestCenter,
@@ -60,8 +61,8 @@ function DragHandle({ attributes, listeners }) {
                 transition: 'all 0.15s',
             }}
             onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0,113,227,0.08)'
-                e.currentTarget.style.color = '#0071E3'
+                e.currentTarget.style.background = 'rgba(0,0,0,0.05)'
+                e.currentTarget.style.color = '#000000'
             }}
             onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent'
@@ -100,7 +101,6 @@ function SortableSection({ id, children }) {
         opacity: isDragging ? 0.5 : 1,
     }
 
-    // 通过 Context 传递拖拽手柄
     const dragHandle = <DragHandle attributes={attributes} listeners={listeners} />
 
     return (
@@ -113,25 +113,352 @@ function SortableSection({ id, children }) {
 }
 
 /**
- * EditorPanel - 左侧编辑区容器
+ * 简历选择器组件 - 紧凑版
+ */
+function ResumeSelector() {
+    const [isOpen, setIsOpen] = useState(false)
+    const [isRenaming, setIsRenaming] = useState(null)
+    const [newName, setNewName] = useState('')
+    const [toastMessage, setToastMessage] = useState(null)
+    const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+    const buttonRef = useRef(null)
+    const dropdownRef = useRef(null)
+    const closeTimerRef = useRef(null)
+
+    const currentResumeId = useResumeStore((state) => state.currentResumeId)
+    const resumes = useResumeStore((state) => state.resumes)
+    const createResume = useResumeStore((state) => state.createResume)
+    const switchResume = useResumeStore((state) => state.switchResume)
+    const renameResume = useResumeStore((state) => state.renameResume)
+    const deleteResume = useResumeStore((state) => state.deleteResume)
+    const duplicateResume = useResumeStore((state) => state.duplicateResume)
+
+    // 直接从 resumes 计算列表，确保响应式更新
+    const resumeList = Object.entries(resumes || {}).map(([id, resume]) => ({
+        id,
+        name: resume.name,
+        createdAt: resume.createdAt,
+        updatedAt: resume.updatedAt,
+        isCurrent: id === currentResumeId
+    })).sort((a, b) => b.createdAt - a.createdAt)
+
+    const currentResume = resumes?.[currentResumeId]
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            // 点击外部时关闭（排除按钮和下拉菜单区域）
+            const isClickOnButton = buttonRef.current && buttonRef.current.contains(e.target)
+            const isClickOnDropdown = dropdownRef.current && dropdownRef.current.contains(e.target)
+            if (!isClickOnButton && !isClickOnDropdown) {
+                setIsOpen(false)
+                setIsRenaming(null)
+            }
+        }
+        if (isOpen) document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [isOpen])
+
+    useEffect(() => {
+        if (toastMessage) {
+            const timer = setTimeout(() => setToastMessage(null), 2500)
+            return () => clearTimeout(timer)
+        }
+    }, [toastMessage])
+
+    const showToast = (message, type = 'success') => setToastMessage({ message, type })
+
+    // 新建简历
+    const handleCreate = () => {
+        const result = createResume('新简历')
+        if (result.success) {
+            setIsOpen(false)
+            showToast('新简历已创建')
+        } else {
+            showToast(result.error, 'error')
+        }
+    }
+
+    const handleSwitch = (id) => {
+        if (id !== currentResumeId) {
+            switchResume(id)
+            setIsOpen(false)
+        }
+    }
+
+    const handleStartRename = (id, name) => {
+        setIsRenaming(id)
+        setNewName(name)
+    }
+
+    const handleConfirmRename = (id) => {
+        if (newName.trim()) {
+            renameResume(id, newName.trim())
+            showToast('已重命名')
+        }
+        setIsRenaming(null)
+        setNewName('')
+    }
+
+    const handleDelete = (id) => {
+        const result = deleteResume(id)
+        if (result.success) {
+            showToast('已删除')
+            setDeleteConfirm(null)
+        } else {
+            showToast(result.error, 'error')
+        }
+    }
+
+    const handleDuplicate = (id) => {
+        const result = duplicateResume(id)
+        if (result.success) {
+            setIsOpen(false)
+            showToast('已复制')
+        } else {
+            showToast(result.error, 'error')
+        }
+    }
+
+    const [renderDropdown, setRenderDropdown] = useState(false)
+
+    // 延迟卸载逻辑，确保退出动画播完
+    useEffect(() => {
+        if (isOpen) {
+            setRenderDropdown(true)
+        } else {
+            const timer = setTimeout(() => setRenderDropdown(false), 400)
+            return () => clearTimeout(timer)
+        }
+    }, [isOpen])
+
+    // 处理 Hover 展开
+    const handleMouseEnter = () => {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+
+        // 即时计算位置
+        if (buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect()
+            setDropdownPosition({
+                top: rect.bottom + 8,
+                left: rect.right - 260
+            })
+        }
+        setIsOpen(true)
+    }
+
+    // 处理 Hover 关闭 (带宽限期)
+    const handleMouseLeave = () => {
+        closeTimerRef.current = setTimeout(() => {
+            setIsOpen(false)
+        }, 300) // 略微增加宽限期，体验更从容
+    }
+
+    return (
+        <>
+            {/* Toast - 使用 Portal 渲染到 body */}
+            {toastMessage && createPortal(
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: '40px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        padding: '12px 24px',
+                        borderRadius: '100px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        zIndex: 10000,
+                        backgroundColor: toastMessage.type === 'error' ? 'rgba(239, 68, 68, 0.9)' : 'rgba(0, 0, 0, 0.8)',
+                        color: '#fff',
+                        backdropFilter: 'blur(10px)',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        animation: 'toast-in 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)'
+                    }}
+                    role="alert"
+                    aria-live="polite"
+                >
+                    {toastMessage.type === 'error' ? (
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    ) : (
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    )}
+                    {toastMessage.message}
+                    <style>{`
+                        @keyframes toast-in {
+                            from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+                            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                        }
+                    `}</style>
+                </div>,
+                document.body
+            )}
+
+            {/* 删除确认弹窗 - 使用 Portal 渲染到 body */}
+            {deleteConfirm && createPortal(
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                    <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(20px)' }} onClick={() => setDeleteConfirm(null)} />
+                    <div style={{ position: 'relative', width: '360px', backgroundColor: '#fff', borderRadius: '32px', padding: '40px 32px', boxShadow: '0 40px 100px -20px rgba(0,0,0,0.15)', border: '1px solid rgba(0,0,0,0.05)', textAlign: 'center' }}>
+                        <div style={{ width: '56px', height: '56px', margin: '0 auto 20px', borderRadius: '18px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#EF4444" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: '#000' }}>确认删除简历？</h3>
+                        <p style={{ fontSize: '15px', color: '#666', marginBottom: '32px', lineHeight: '1.4' }}>"{deleteConfirm.name}" 将被永久删除，且无法找回。</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <button onClick={() => handleDelete(deleteConfirm.id)} style={{ padding: '16px', fontSize: '16px', fontWeight: 700, color: '#fff', background: '#EF4444', border: 'none', borderRadius: '16px', cursor: 'pointer' }}>确认删除</button>
+                            <button onClick={() => setDeleteConfirm(null)} style={{ padding: '16px', fontSize: '16px', fontWeight: 600, color: '#666', background: '#F5F5F7', border: 'none', borderRadius: '16px', cursor: 'pointer' }}>取消</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* 下拉菜单 - 使用 Portal 渲染到 body */}
+            <div
+                style={{ position: 'relative' }}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+            >
+                <button
+                    ref={buttonRef}
+                    onClick={() => {
+                        if (!isOpen) handleMouseEnter()
+                        setIsOpen(!isOpen)
+                    }}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        borderRadius: '0',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: '#1D1D1F',
+                        transition: 'all 0.15s'
+                    }}
+                    aria-haspopup="listbox"
+                    aria-expanded={isOpen}
+                >
+                    <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {currentResume?.name || '我的简历'}
+                    </span>
+                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+            </div>
+
+            {renderDropdown && createPortal(
+                <div
+                    ref={dropdownRef}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                    style={{
+                        position: 'fixed',
+                        top: dropdownPosition.top,
+                        left: dropdownPosition.left,
+                        width: '260px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(16px)',
+                        borderRadius: '16px',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)',
+                        zIndex: 10000,
+                        overflow: 'hidden',
+                        // 优雅动画定义
+                        opacity: isOpen ? 1 : 0,
+                        transform: isOpen ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.98)',
+                        visibility: isOpen ? 'visible' : 'hidden',
+                        transformOrigin: 'top right',
+                        transition: 'opacity 0.3s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0.3s',
+                        pointerEvents: isOpen ? 'auto' : 'none'
+                    }}
+                    role="listbox"
+                >
+                    <div style={{ maxHeight: '240px', overflowY: 'auto', padding: '6px' }}>
+                        {resumeList.map((resume) => (
+                            <div
+                                key={resume.id}
+                                style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', borderRadius: '8px', backgroundColor: resume.isCurrent ? 'rgba(0,0,0,0.08)' : 'transparent', cursor: 'pointer' }}
+                                onClick={() => handleSwitch(resume.id)}
+                                role="option"
+                                aria-selected={resume.isCurrent}
+                            >
+                                <div style={{ width: '18px', marginRight: '8px' }}>
+                                    {resume.isCurrent && <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#000000" strokeWidth={2.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    {isRenaming === resume.id ? (
+                                        <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); handleConfirmRename(resume.id); } if (e.key === 'Escape') { e.stopPropagation(); setIsRenaming(null); } }} onBlur={() => handleConfirmRename(resume.id)} autoFocus onClick={(e) => e.stopPropagation()} style={{ width: '100%', padding: '2px 6px', fontSize: '13px', border: '1px solid #0071E3', borderRadius: '4px', outline: 'none' }} aria-label="简历名称" />
+                                    ) : (
+                                        <span style={{ fontSize: '13px', fontWeight: resume.isCurrent ? 600 : 400, color: resume.isCurrent ? '#000000' : '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{resume.name}</span>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '2px', opacity: 0.5 }}>
+                                    <button onClick={(e) => { e.stopPropagation(); handleStartRename(resume.id, resume.name) }} style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer' }} title="重命名" aria-label="重命名"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDuplicate(resume.id) }} style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer' }} title="复制" aria-label="复制"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button>
+                                    {resumeList.length > 1 && <button onClick={(e) => { e.stopPropagation(); setIsOpen(false); setDeleteConfirm({ id: resume.id, name: resume.name }) }} style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444' }} title="删除" aria-label="删除"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    {/* 底部功能栏：整合新建简历 */}
+                    <div style={{ padding: '8px', borderTop: '1px solid #F0F0F0', backgroundColor: '#fafafa' }}>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleCreate(); }}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '12px',
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                color: '#FFFFFF',
+                                backgroundColor: '#000000',
+                                border: 'none',
+                                borderRadius: '10px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#333333'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#000000'}
+                        >
+                            新建简历
+                        </button>
+                    </div>
+                </div>,
+                document.body
+            )}
+        </>
+    )
+}
+
+
+/**
+ * EditorPanel - 左侧编辑区
+ * 
+ * 布局优化 v2：
+ * - 顶部工具栏精简：Logo + 简历选择器 + 更多菜单
+ * - 删除冗余状态提示（自动保存、隐私轮播）
+ * - 次要功能整合到菜单中
  */
 function EditorPanel() {
-    const resetResume = useResumeStore((state) => state.resetResume)
-    const sectionOrder = useResumeStore((state) => state.sectionOrder)
+    const sectionOrder = useResumeStore((state) => state.resumes[state.currentResumeId]?.data?.sectionOrder || [])
     const reorderSections = useResumeStore((state) => state.reorderSections)
-    const [showResetConfirm, setShowResetConfirm] = useState(false)
 
-    // 拖拽传感器配置
     const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: { distance: 8 },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     )
 
-    // 处理拖拽结束
     const handleDragEnd = (event) => {
         const { active, over } = event
         if (active.id !== over?.id) {
@@ -142,264 +469,47 @@ function EditorPanel() {
         }
     }
 
-    // 处理重置操作
-    const handleReset = () => {
-        resetResume()
-        setShowResetConfirm(false)
-    }
-
     return (
-        <aside className="w-[640px] min-w-[640px] h-screen overflow-y-auto hide-scrollbar"
-            style={{ backgroundColor: 'var(--color-bg)' }}>
-            {/* 顶部工具栏 */}
-            <header className="sticky top-0 z-20 header-glass" style={{ padding: '16px 30px' }}>
-                <div className="flex items-center justify-between">
+        <aside className="w-[640px] min-w-[640px] h-screen flex flex-col" style={{ backgroundColor: 'var(--color-bg)' }}>
+            {/* 极简顶部工具栏 - 统一高度为 64px 且垂直居中 */}
+            <header className="z-20 flex-shrink-0 bg-white border-b border-gray-100" style={{ height: '64px', display: 'flex', alignItems: 'center', padding: '0 24px' }}>
+                <div className="flex items-center justify-between w-full">
+                    {/* 左侧：仅 Logo (保持简洁) */}
                     <div className="flex items-center gap-4">
-                        <h1 className="brand-logo">极简简历</h1>
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '4px 10px',
-                                borderRadius: '20px',
-                                background: 'rgba(34, 197, 94, 0.1)',
-                                fontSize: '11px',
-                                fontWeight: 500,
-                                color: '#16A34A'
-                            }}
-                        >
-                            <span
-                                style={{
-                                    width: '6px',
-                                    height: '6px',
-                                    borderRadius: '50%',
-                                    background: '#22C55E',
-                                    animation: 'pulse 2s infinite'
-                                }}
-                            />
-                            已自动保存
-                        </div>
-                        {/* 上下滚动的隐私提示 */}
-                        <div
-                            style={{
-                                height: '20px',
-                                overflow: 'hidden',
-                                fontSize: '11px',
-                                color: '#86868B',
-                            }}
-                        >
-                            <div
-                                style={{
-                                    animation: 'scrollUp 9s ease-in-out infinite',
-                                }}
-                            >
-                                <div style={{ height: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span>🔒</span> 本地存储，数据不上传
-                                </div>
-                                <div style={{ height: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span>🛡️</span> 无云端服务，隐私安全
-                                </div>
-                                <div style={{ height: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span>💾</span> 刷新不丢失，自动保存
-                                </div>
-                            </div>
-                        </div>
+                        <h1 className="brand-logo" style={{ fontSize: '20px' }}>极简简历</h1>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setShowResetConfirm(true)}
-                            className="btn btn-secondary text-sm py-2 px-4"
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            重置
-                        </button>
-                        <a
-                            href="https://github.com/gogogonow178/paperResume"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-secondary text-sm py-2 px-3"
-                            title="GitHub"
-                        >
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
-                            </svg>
-                        </a>
+
+                    {/* 右侧：简历管理入口 (一体化整合) */}
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <ResumeSelector />
                     </div>
                 </div>
             </header>
 
-            {/* 重置确认对话框 */}
-            {showResetConfirm && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 9999,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '16px'
-                    }}
-                >
-                    <div
-                        style={{
-                            position: 'absolute',
-                            inset: 0,
-                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                            backdropFilter: 'blur(8px)'
-                        }}
-                        onClick={() => setShowResetConfirm(false)}
-                    />
-                    <div
-                        style={{
-                            position: 'relative',
-                            width: '100%',
-                            maxWidth: '400px',
-                            backgroundColor: '#fff',
-                            borderRadius: '24px',
-                            overflow: 'hidden',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-                        }}
-                    >
-                        <div style={{ padding: '32px 28px 24px' }}>
-                            <div
-                                style={{
-                                    width: '72px',
-                                    height: '72px',
-                                    margin: '0 auto 20px',
-                                    borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #FEF2F2 0%, #FEF3C7 100%)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                <svg
-                                    style={{ width: '36px', height: '36px', color: '#EF4444' }}
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    aria-hidden="true"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                    />
-                                </svg>
-                            </div>
-                            <h3
-                                style={{
-                                    fontSize: '20px',
-                                    fontWeight: 700,
-                                    textAlign: 'center',
-                                    color: '#1D1D1F',
-                                    marginBottom: '12px'
-                                }}
-                            >
-                                确认重置所有内容？
-                            </h3>
-                            <p
-                                style={{
-                                    fontSize: '14px',
-                                    lineHeight: 1.6,
-                                    textAlign: 'center',
-                                    color: '#6B7280',
-                                    marginBottom: '8px'
-                                }}
-                            >
-                                此操作将清除所有已填写的信息并恢复为默认示例。
-                            </p>
-                            <p
-                                style={{
-                                    fontSize: '14px',
-                                    fontWeight: 600,
-                                    textAlign: 'center',
-                                    color: '#EF4444'
-                                }}
-                            >
-                                ⚠️ 操作无法撤销，请谨慎处理
-                            </p>
-                        </div>
-                        <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <button
-                                onClick={handleReset}
-                                style={{
-                                    width: '100%',
-                                    padding: '14px 0',
-                                    fontSize: '15px',
-                                    fontWeight: 600,
-                                    color: '#fff',
-                                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                                    border: 'none',
-                                    borderRadius: '12px',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)',
-                                    transition: 'transform 0.15s, opacity 0.15s'
-                                }}
-                            >
-                                确认重置
-                            </button>
-                            <button
-                                onClick={() => setShowResetConfirm(false)}
-                                style={{
-                                    width: '100%',
-                                    padding: '14px 0',
-                                    fontSize: '15px',
-                                    fontWeight: 500,
-                                    color: '#6B7280',
-                                    background: '#F3F4F6',
-                                    border: 'none',
-                                    borderRadius: '12px',
-                                    cursor: 'pointer',
-                                    transition: 'background 0.15s'
-                                }}
-                            >
-                                取消
-                            </button>
-                        </div>
+            {/* 编辑模块列表 - 独立的滚动容器 */}
+            <div className="flex-1 overflow-y-auto hide-scrollbar">
+                <div style={{ maxWidth: '600px', margin: '0 auto', padding: '24px 24px 120px 24px' }} className="space-y-16">
+                    <BasicInfo />
+
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
+                            {sectionOrder.map((sectionId) => {
+                                const config = SECTION_CONFIG[sectionId]
+                                if (!config) return null
+                                const Component = config.component
+                                return (
+                                    <SortableSection key={sectionId} id={sectionId}>
+                                        <Component />
+                                    </SortableSection>
+                                )
+                            })}
+                        </SortableContext>
+                    </DndContext>
+
+                    <div style={{ marginTop: '64px' }}>
+                        <CustomSection />
                     </div>
                 </div>
-            )}
-
-            {/* 编辑模块列表 */}
-            <div style={{
-                maxWidth: '600px',
-                margin: '0 auto',
-                padding: '32px 24px 120px 24px'
-            }} className="space-y-16">
-                {/* 基本信息 - 固定在顶部，不可拖拽 */}
-                <BasicInfo />
-
-                {/* 可拖拽排序的模块 */}
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                >
-                    <SortableContext
-                        items={sectionOrder}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        {sectionOrder.map((sectionId) => {
-                            const config = SECTION_CONFIG[sectionId]
-                            if (!config) return null
-                            const Component = config.component
-                            return (
-                                <SortableSection key={sectionId} id={sectionId}>
-                                    <Component />
-                                </SortableSection>
-                            )
-                        })}
-                    </SortableContext>
-                </DndContext>
-
-                {/* 自定义模块 - 独立处理 */}
-                <CustomSection />
             </div>
         </aside>
     )

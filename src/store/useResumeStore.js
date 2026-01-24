@@ -98,133 +98,679 @@ const defaultResumeData = {
     hiddenSections: [],
 }
 
+// 简历数量上限
+const MAX_RESUMES = 10
+
+/**
+ * 迁移老版本数据到新的多简历结构
+ * @param {object} persistedState - localStorage 中的持久化状态
+ * @returns {object|null} - 迁移后的状态，如无需迁移则返回 null
+ */
+const migrateOldData = (persistedState) => {
+    // 如果已经是新结构（有 resumes 字段），无需迁移
+    if (persistedState?.resumes) {
+        return null
+    }
+
+    // 如果是老结构（直接有 basicInfo 等字段），进行迁移
+    if (persistedState?.basicInfo) {
+        const resumeId = `resume-${Date.now()}`
+        const now = Date.now()
+
+        // 提取老数据字段
+        const {
+            basicInfo,
+            education,
+            workExperience,
+            projects,
+            skills,
+            summary,
+            customSections,
+            sectionOrder,
+            hiddenSections,
+        } = persistedState
+
+        return {
+            currentResumeId: resumeId,
+            resumes: {
+                [resumeId]: {
+                    name: basicInfo?.name ? `${basicInfo.name}的简历` : '我的简历',
+                    createdAt: now,
+                    updatedAt: now,
+                    data: {
+                        basicInfo: basicInfo || defaultResumeData.basicInfo,
+                        education: education || defaultResumeData.education,
+                        workExperience: workExperience || defaultResumeData.workExperience,
+                        projects: projects || defaultResumeData.projects,
+                        skills: skills || defaultResumeData.skills,
+                        summary: summary || defaultResumeData.summary,
+                        customSections: customSections || defaultResumeData.customSections,
+                        sectionOrder: sectionOrder || defaultResumeData.sectionOrder,
+                        hiddenSections: hiddenSections || defaultResumeData.hiddenSections,
+                    }
+                }
+            }
+        }
+    }
+
+    return null
+}
+
+/**
+ * 创建默认的初始简历
+ */
+const createInitialResume = () => {
+    const resumeId = `resume-${Date.now()}`
+    const now = Date.now()
+    return {
+        currentResumeId: resumeId,
+        resumes: {
+            [resumeId]: {
+                name: '我的简历',
+                createdAt: now,
+                updatedAt: now,
+                data: { ...defaultResumeData }
+            }
+        }
+    }
+}
+
 /**
  * useResumeStore - Zustand 状态管理
- * 使用 persist 中间件自动同步到 localStorage
+ * 支持多简历管理，使用 persist 中间件自动同步到 localStorage
  */
+// 创建初始状态（确保首次加载就有默认简历）
+const initialState = createInitialResume()
+
 const useResumeStore = create(
     persist(
         (set, get) => ({
-            ...defaultResumeData,
+            // 当前选中的简历 ID（使用初始状态的默认值）
+            currentResumeId: initialState.currentResumeId,
+            // 所有简历（键值对形式，使用初始状态的默认值）
+            resumes: initialState.resumes,
+
+            // ========== 获取当前简历数据 (便捷方法) ==========
+            getCurrentResume: () => {
+                const { currentResumeId, resumes } = get()
+                return resumes[currentResumeId]?.data || defaultResumeData
+            },
+
+            // ========== 简历管理操作 ==========
+
+            // 获取简历列表
+            getResumeList: () => {
+                const { resumes, currentResumeId } = get()
+                return Object.entries(resumes).map(([id, resume]) => ({
+                    id,
+                    name: resume.name,
+                    createdAt: resume.createdAt,
+                    updatedAt: resume.updatedAt,
+                    isCurrent: id === currentResumeId
+                })).sort((a, b) => b.createdAt - a.createdAt)
+            },
+
+            // 辅助方法：获取不重复的简历名称
+            _getUniqueResumeName: (baseName) => {
+                const { resumes } = get()
+                const existingNames = Object.values(resumes).map(r => r.name)
+                if (!existingNames.includes(baseName)) return baseName
+
+                let counter = 1
+                while (existingNames.includes(`${baseName} (${counter})`)) {
+                    counter++
+                }
+                return `${baseName} (${counter})`
+            },
+
+            // 创建新简历
+            createResume: (name = '新简历') => {
+                const { resumes, _getUniqueResumeName } = get()
+                const resumeCount = Object.keys(resumes).length
+
+                // 检查是否达到上限
+                if (resumeCount >= MAX_RESUMES) {
+                    return { success: false, error: `已达到简历数量上限（${MAX_RESUMES}份），请先删除其他简历` }
+                }
+
+                const uniqueName = _getUniqueResumeName(name)
+                const resumeId = `resume-${Date.now()}`
+                const now = Date.now()
+
+                set((state) => ({
+                    currentResumeId: resumeId,
+                    resumes: {
+                        ...state.resumes,
+                        [resumeId]: {
+                            name: uniqueName,
+                            createdAt: now,
+                            updatedAt: now,
+                            data: { ...defaultResumeData }
+                        }
+                    }
+                }))
+
+                return { success: true, resumeId }
+            },
+
+            // 切换简历
+            switchResume: (resumeId) => {
+                const { resumes } = get()
+                if (resumes[resumeId]) {
+                    set({ currentResumeId: resumeId })
+                    return true
+                }
+                return false
+            },
+
+            // 重命名简历
+            renameResume: (resumeId, newName) => {
+                set((state) => {
+                    if (!state.resumes[resumeId]) return state
+                    return {
+                        resumes: {
+                            ...state.resumes,
+                            [resumeId]: {
+                                ...state.resumes[resumeId],
+                                name: newName,
+                                // updatedAt: Date.now() // 不更新时间，避免重命名导致排序跳动
+                            }
+                        }
+                    }
+                })
+            },
+
+            // 删除简历
+            deleteResume: (resumeId) => {
+                const { resumes, currentResumeId } = get()
+                const resumeCount = Object.keys(resumes).length
+
+                // 至少保留一份简历
+                if (resumeCount <= 1) {
+                    return { success: false, error: '至少需要保留一份简历' }
+                }
+
+                // 创建新的 resumes 对象（不包含被删除的）
+                const newResumes = { ...resumes }
+                delete newResumes[resumeId]
+
+                // 如果删除的是当前简历，切换到其他简历
+                let newCurrentId = currentResumeId
+                if (resumeId === currentResumeId) {
+                    // 切换到最近更新的简历
+                    newCurrentId = Object.entries(newResumes)
+                        .sort(([, a], [, b]) => b.updatedAt - a.updatedAt)[0][0]
+                }
+
+                set({
+                    resumes: newResumes,
+                    currentResumeId: newCurrentId
+                })
+
+                return { success: true }
+            },
+
+            // 复制简历
+            duplicateResume: (resumeId) => {
+                const { resumes, _getUniqueResumeName } = get()
+                const resumeCount = Object.keys(resumes).length
+
+                if (resumeCount >= MAX_RESUMES) {
+                    return { success: false, error: `已达到简历数量上限（${MAX_RESUMES}份），请先删除其他简历` }
+                }
+
+                const sourceResume = resumes[resumeId]
+                if (!sourceResume) {
+                    return { success: false, error: '源简历不存在' }
+                }
+
+                const uniqueName = _getUniqueResumeName(sourceResume.name)
+                const newResumeId = `resume-${Date.now()}`
+                const now = Date.now()
+
+                set((state) => ({
+                    currentResumeId: newResumeId,
+                    resumes: {
+                        ...state.resumes,
+                        [newResumeId]: {
+                            name: uniqueName,
+                            createdAt: now,
+                            updatedAt: now,
+                            data: JSON.parse(JSON.stringify(sourceResume.data))
+                        }
+                    }
+                }))
+
+                return { success: true, resumeId: newResumeId }
+            },
+
+            // ========== 辅助方法：更新当前简历的 updatedAt ==========
+            _touchCurrentResume: () => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now()
+                        }
+                    }
+                }))
+            },
 
             // ========== 基本信息 ==========
-            updateBasicInfo: (field, value) => set((state) => ({
-                basicInfo: { ...state.basicInfo, [field]: value }
-            })),
+            updateBasicInfo: (field, value) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                basicInfo: {
+                                    ...state.resumes[currentResumeId].data.basicInfo,
+                                    [field]: value
+                                }
+                            }
+                        }
+                    }
+                }))
+            },
 
             // ========== 教育经历 ==========
-            addEducation: () => set((state) => ({
-                education: [...state.education, {
-                    id: `edu-${Date.now()}`,
-                    school: '',
-                    degree: '',
-                    startDate: '',
-                    endDate: '',
-                    major: '',
-                    description: '',
-                }]
-            })),
-            updateEducation: (id, field, value) => set((state) => ({
-                education: state.education.map(item =>
-                    item.id === id ? { ...item, [field]: value } : item
-                )
-            })),
-            removeEducation: (id) => set((state) => ({
-                education: state.education.filter(item => item.id !== id)
-            })),
+            addEducation: () => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                education: [...state.resumes[currentResumeId].data.education, {
+                                    id: `edu-${Date.now()}`,
+                                    school: '',
+                                    degree: '',
+                                    startDate: '',
+                                    endDate: '',
+                                    major: '',
+                                    description: '',
+                                }]
+                            }
+                        }
+                    }
+                }))
+            },
+            updateEducation: (id, field, value) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                education: state.resumes[currentResumeId].data.education.map(item =>
+                                    item.id === id ? { ...item, [field]: value } : item
+                                )
+                            }
+                        }
+                    }
+                }))
+            },
+            removeEducation: (id) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                education: state.resumes[currentResumeId].data.education.filter(item => item.id !== id)
+                            }
+                        }
+                    }
+                }))
+            },
 
             // ========== 工作经历 ==========
-            addWorkExperience: () => set((state) => ({
-                workExperience: [...state.workExperience, {
-                    id: `work-${Date.now()}`,
-                    company: '',
-                    position: '',
-                    startDate: '',
-                    endDate: '',
-                    description: '',
-                }]
-            })),
-            updateWorkExperience: (id, field, value) => set((state) => ({
-                workExperience: state.workExperience.map(item =>
-                    item.id === id ? { ...item, [field]: value } : item
-                )
-            })),
-            removeWorkExperience: (id) => set((state) => ({
-                workExperience: state.workExperience.filter(item => item.id !== id)
-            })),
+            addWorkExperience: () => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                workExperience: [...state.resumes[currentResumeId].data.workExperience, {
+                                    id: `work-${Date.now()}`,
+                                    company: '',
+                                    position: '',
+                                    startDate: '',
+                                    endDate: '',
+                                    description: '',
+                                }]
+                            }
+                        }
+                    }
+                }))
+            },
+            updateWorkExperience: (id, field, value) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                workExperience: state.resumes[currentResumeId].data.workExperience.map(item =>
+                                    item.id === id ? { ...item, [field]: value } : item
+                                )
+                            }
+                        }
+                    }
+                }))
+            },
+            removeWorkExperience: (id) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                workExperience: state.resumes[currentResumeId].data.workExperience.filter(item => item.id !== id)
+                            }
+                        }
+                    }
+                }))
+            },
 
             // ========== 项目经历 ==========
-            addProject: () => set((state) => ({
-                projects: [...state.projects, {
-                    id: `proj-${Date.now()}`,
-                    name: '',
-                    role: '',
-                    date: '',
-                    link: '',
-                    description: '',
-                }]
-            })),
-            updateProject: (id, field, value) => set((state) => ({
-                projects: state.projects.map(item =>
-                    item.id === id ? { ...item, [field]: value } : item
-                )
-            })),
-            removeProject: (id) => set((state) => ({
-                projects: state.projects.filter(item => item.id !== id)
-            })),
+            addProject: () => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                projects: [...state.resumes[currentResumeId].data.projects, {
+                                    id: `proj-${Date.now()}`,
+                                    name: '',
+                                    role: '',
+                                    date: '',
+                                    link: '',
+                                    description: '',
+                                }]
+                            }
+                        }
+                    }
+                }))
+            },
+            updateProject: (id, field, value) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                projects: state.resumes[currentResumeId].data.projects.map(item =>
+                                    item.id === id ? { ...item, [field]: value } : item
+                                )
+                            }
+                        }
+                    }
+                }))
+            },
+            removeProject: (id) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                projects: state.resumes[currentResumeId].data.projects.filter(item => item.id !== id)
+                            }
+                        }
+                    }
+                }))
+            },
 
             // ========== 专业技能 ==========
-            addSkill: () => set((state) => ({
-                skills: [...state.skills, {
-                    id: `skill-${Date.now()}`,
-                    title: '',
-                    content: '',
-                }]
-            })),
-            updateSkill: (id, field, value) => set((state) => ({
-                skills: state.skills.map(item =>
-                    item.id === id ? { ...item, [field]: value } : item
-                )
-            })),
-            removeSkill: (id) => set((state) => ({
-                skills: state.skills.filter(item => item.id !== id)
-            })),
+            addSkill: () => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                skills: [...state.resumes[currentResumeId].data.skills, {
+                                    id: `skill-${Date.now()}`,
+                                    title: '',
+                                    content: '',
+                                }]
+                            }
+                        }
+                    }
+                }))
+            },
+            updateSkill: (id, field, value) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                skills: state.resumes[currentResumeId].data.skills.map(item =>
+                                    item.id === id ? { ...item, [field]: value } : item
+                                )
+                            }
+                        }
+                    }
+                }))
+            },
+            removeSkill: (id) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                skills: state.resumes[currentResumeId].data.skills.filter(item => item.id !== id)
+                            }
+                        }
+                    }
+                }))
+            },
 
             // ========== 个人总结 ==========
-            updateSummary: (value) => set({ summary: value }),
+            updateSummary: (value) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                summary: value
+                            }
+                        }
+                    }
+                }))
+            },
 
             // ========== 自定义模块 ==========
-            addCustomSection: () => set((state) => ({
-                customSections: [...state.customSections, {
-                    id: `custom-${Date.now()}`,
-                    title: '自定义模块',
-                    content: '',
-                }]
-            })),
-            updateCustomSection: (id, field, value) => set((state) => ({
-                customSections: state.customSections.map(item =>
-                    item.id === id ? { ...item, [field]: value } : item
-                )
-            })),
-            removeCustomSection: (id) => set((state) => ({
-                customSections: state.customSections.filter(item => item.id !== id)
-            })),
+            addCustomSection: () => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                customSections: [...state.resumes[currentResumeId].data.customSections, {
+                                    id: `custom-${Date.now()}`,
+                                    title: '自定义模块',
+                                    content: '',
+                                }]
+                            }
+                        }
+                    }
+                }))
+            },
+            updateCustomSection: (id, field, value) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                customSections: state.resumes[currentResumeId].data.customSections.map(item =>
+                                    item.id === id ? { ...item, [field]: value } : item
+                                )
+                            }
+                        }
+                    }
+                }))
+            },
+            removeCustomSection: (id) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                customSections: state.resumes[currentResumeId].data.customSections.filter(item => item.id !== id)
+                            }
+                        }
+                    }
+                }))
+            },
 
             // ========== 模块排序 ==========
-            reorderSections: (newOrder) => set({ sectionOrder: newOrder }),
+            reorderSections: (newOrder) => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: {
+                                ...state.resumes[currentResumeId].data,
+                                sectionOrder: newOrder
+                            }
+                        }
+                    }
+                }))
+            },
 
             // ========== 模块可见性 ==========
-            toggleSectionVisibility: (sectionId) => set((state) => ({
-                hiddenSections: state.hiddenSections.includes(sectionId)
-                    ? state.hiddenSections.filter(id => id !== sectionId)
-                    : [...state.hiddenSections, sectionId]
-            })),
+            toggleSectionVisibility: (sectionId) => {
+                const { currentResumeId } = get()
+                set((state) => {
+                    const currentHidden = state.resumes[currentResumeId].data.hiddenSections
+                    return {
+                        resumes: {
+                            ...state.resumes,
+                            [currentResumeId]: {
+                                ...state.resumes[currentResumeId],
+                                updatedAt: Date.now(),
+                                data: {
+                                    ...state.resumes[currentResumeId].data,
+                                    hiddenSections: currentHidden.includes(sectionId)
+                                        ? currentHidden.filter(id => id !== sectionId)
+                                        : [...currentHidden, sectionId]
+                                }
+                            }
+                        }
+                    }
+                })
+            },
 
-            // ========== 重置 ==========
-            resetResume: () => set({ ...defaultResumeData }),
+            // ========== 重置当前简历 ==========
+            resetResume: () => {
+                const { currentResumeId } = get()
+                set((state) => ({
+                    resumes: {
+                        ...state.resumes,
+                        [currentResumeId]: {
+                            ...state.resumes[currentResumeId],
+                            updatedAt: Date.now(),
+                            data: { ...defaultResumeData }
+                        }
+                    }
+                }))
+            },
         }),
         {
             name: 'paper-resume-storage', // localStorage key
+            // 数据迁移：处理老版本数据结构
+            onRehydrateStorage: () => (state, error) => {
+                if (error) {
+                    console.error('Failed to rehydrate store:', error)
+                    return
+                }
+
+                // 检查是否需要初始化（首次使用或数据为空）
+                if (!state?.resumes || Object.keys(state.resumes).length === 0) {
+                    // 初始化默认简历
+                    const initial = createInitialResume()
+                    useResumeStore.setState(initial)
+                }
+            },
+            // 自定义 merge 函数处理数据迁移
+            merge: (persistedState, currentState) => {
+                // 尝试迁移老数据
+                const migratedState = migrateOldData(persistedState)
+                if (migratedState) {
+                    console.log('[useResumeStore] 数据迁移：老版本 -> 多简历结构')
+                    return { ...currentState, ...migratedState }
+                }
+
+                // 正常合并
+                return { ...currentState, ...persistedState }
+            }
         }
     )
 )

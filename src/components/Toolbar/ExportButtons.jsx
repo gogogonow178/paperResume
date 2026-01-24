@@ -8,7 +8,7 @@ import { exportToPdf, exportToImage } from '../../utils/exportPdf.jsx'
 function ExportButtons() {
     const [isExporting, setIsExporting] = useState(false)
     const [progressText, setProgressText] = useState('')
-    const basicInfo = useResumeStore((state) => state.basicInfo)
+    const basicInfo = useResumeStore((state) => state.resumes[state.currentResumeId]?.data?.basicInfo || {})
 
     // 导出 PDF（截图方案）
     const handleExportPdf = async () => {

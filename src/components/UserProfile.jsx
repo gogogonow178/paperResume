@@ -154,10 +154,11 @@ export default function UserProfile() {
         },
         card: {
             backgroundColor: '#FFFFFF',
-            borderRadius: '16px',
-            boxShadow: '0 12px 48px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04)',
+            borderRadius: '24px',
+            boxShadow: '0 40px 100px -20px rgba(0,0,0,0.15)',
+            border: '1px solid rgba(0,0,0,0.05)',
             overflow: 'hidden',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            fontFamily: 'system-ui, -apple-system, sans-serif'
         },
         header: {
             padding: '20px 24px',
@@ -213,7 +214,7 @@ export default function UserProfile() {
             color: '#fff',
             fontSize: '14px',
             fontWeight: '600',
-            borderRadius: '10px',
+            borderRadius: '14px',
             border: 'none',
             cursor: 'pointer',
             transition: 'transform 0.1s',
@@ -227,28 +228,6 @@ export default function UserProfile() {
     if (!user) {
         return (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <style>{`
-                    @keyframes subtle-bounce {
-                        0%, 5%, 15%, 25%, 100% { transform: translateY(0); }
-                        10% { transform: translateY(-3px); }
-                        20% { transform: translateY(-1.5px); }
-                    }
-                `}</style>
-                <div style={{
-                    color: '#BE123C',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    padding: '6px 14px',
-                    backgroundColor: '#FFF1F2',
-                    borderRadius: '100px',
-                    border: '1px solid #FFE4E6',
-                    whiteSpace: 'nowrap',
-                    animation: 'subtle-bounce 5s infinite ease-in-out',
-                    cursor: 'default',
-                    boxShadow: '0 2px 6px rgba(190, 18, 60, 0.05)'
-                }}>
-                    🎁 注册即送 5 次 AI 深度润色
-                </div>
                 <button
                     onClick={() => setIsAuthModalOpen(true)}
                     style={styles.loginBtn}

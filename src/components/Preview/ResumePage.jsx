@@ -22,17 +22,20 @@ function ResumePage() {
         customSections,
         sectionOrder,
         hiddenSections
-    } = useResumeStore(useShallow((state) => ({
-        basicInfo: state.basicInfo,
-        education: state.education,
-        workExperience: state.workExperience,
-        projects: state.projects,
-        skills: state.skills,
-        summary: state.summary,
-        customSections: state.customSections,
-        sectionOrder: state.sectionOrder,
-        hiddenSections: state.hiddenSections
-    })))
+    } = useResumeStore(useShallow((state) => {
+        const currentResume = state.resumes[state.currentResumeId]?.data || {}
+        return {
+            basicInfo: currentResume.basicInfo || {},
+            education: currentResume.education || [],
+            workExperience: currentResume.workExperience || [],
+            projects: currentResume.projects || [],
+            skills: currentResume.skills || [],
+            summary: currentResume.summary || '',
+            customSections: currentResume.customSections || [],
+            sectionOrder: currentResume.sectionOrder || [],
+            hiddenSections: currentResume.hiddenSections || []
+        }
+    }))
 
     const contentRef = useRef(null)
     const [pageCount, setPageCount] = useState(1)
@@ -115,7 +118,7 @@ function ResumePage() {
                                 {item.role && <span className="item-subtitle">· {item.role}</span>}
                                 {item.link && (
                                     <a href={item.link} target="_blank" rel="noopener noreferrer"
-                                        style={{ marginLeft: '8px', fontSize: '12px', color: '#0071E3' }}>
+                                        style={{ marginLeft: '8px', fontSize: '12px', color: '#000000' }}>
                                         查看
                                     </a>
                                 )}
@@ -192,32 +195,64 @@ function ResumePage() {
                     <h1 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '4px' }}>
                         {basicInfo.name || '姓名'}
                     </h1>
-                    <p style={{ fontSize: '15px', color: '#0071E3', marginBottom: '12px', fontWeight: 500 }}>
+                    <p style={{ fontSize: '15px', color: '#000000', marginBottom: '12px', fontWeight: 500 }}>
                         {basicInfo.jobTitle || '求职意向'}
                     </p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: '12px', rowGap: '4px', fontSize: '13px', color: '#86868B', maxWidth: 'calc(100% - 100px)' }}>
-                        {basicInfo.phone && <span>📞 {basicInfo.phone}</span>}
-                        {basicInfo.email && <span>✉️ {basicInfo.email}</span>}
-                        {basicInfo.city && <span>📍 {basicInfo.city}</span>}
+                    <div className="contact-info">
+                        {basicInfo.phone && (
+                            <span className="contact-item">
+                                <span className="contact-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                                    </svg>
+                                </span>
+                                <span className="contact-text">{basicInfo.phone}</span>
+                            </span>
+                        )}
+                        {basicInfo.email && (
+                            <span className="contact-item">
+                                <span className="contact-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                        <polyline points="22,6 12,13 2,6" />
+                                    </svg>
+                                </span>
+                                <span className="contact-text">{basicInfo.email}</span>
+                            </span>
+                        )}
+                        {basicInfo.city && (
+                            <span className="contact-item">
+                                <span className="contact-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                        <circle cx="12" cy="10" r="3" />
+                                    </svg>
+                                </span>
+                                <span className="contact-text">{basicInfo.city}</span>
+                            </span>
+                        )}
                         {basicInfo.wechat && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                <svg width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0 }}>
-                                    <path d="M851.457126 597.145713c0-46.871077-21.286428-90.774335-60.072756-123.522686-34.590446-29.268839-79.414751-46.359384-127.411553-49.020188-10.540875-48.303818-40.423746-92.207076-84.429342-123.829702-44.312612-31.929642-100.701179-49.429542-158.727164-49.429542-65.394363 0-127.002199 21.695783-173.56626 60.993804-47.587448 40.321407-73.888467 94.151509-73.888467 151.665801 0 29.678193 6.959025 58.435339 20.774735 85.452728 11.973616 23.537877 28.654807 44.824305 49.531881 63.142914l-16.988207 94.458525c-1.43274 8.187088 1.535079 16.578853 7.880072 21.90046 4.195882 3.581851 9.619828 5.423946 14.941435 5.423946 2.660804 0 5.321607-0.409354 7.880072-1.43274l155.247651-56.388567c18.830302-0.409354 36.841895-1.739756 53.830102-4.093544 8.289426 17.602239 19.649011 33.157705 34.078753 46.257046 35.71617 32.543674 88.420548 49.736558 156.78273 51.169298 0.409354 0 0.71637 0 1.023386 0.102339l113.595842 26.608035c1.739756 0.409354 3.479512 0.614032 5.219268 0.614032 5.526284 0 10.95023-1.944433 15.248451-5.730961 5.628623-4.912253 8.494104-12.178293 7.880072-19.546672l-5.11693-54.751149C831.091745 685.259244 851.457126 641.970018 851.457126 597.145713zM408.331001 631.736158l-3.786528 0.102339-126.695183 46.052369 11.6666-64.575655c2.046772-11.359584-2.251449-22.923846-11.052568-30.189886-38.581651-31.724965-59.868079-73.990806-59.868079-118.91745 0-92.411753 90.774335-167.73296 202.425745-167.73296 95.277234 0 176.431741 54.239456 197.308815 130.277034-40.321407 5.730961-77.572656 21.90046-107.353188 47.075755-38.68399 32.748351-60.072756 76.651609-60.072756 123.522686 0 10.95023 0.818709 21.593444 2.456126 31.724965C439.03258 630.508095 423.988807 631.531481 408.331001 631.736158zM758.943034 689.045773c-6.754347 5.321607-10.23386 13.611033-9.415151 22.105137l3.274835 34.897462-83.917649-19.546672 0 0c-3.377174-1.023386-6.856686-1.43274-10.336198-1.43274-106.329802-2.149111-162.61603-46.461723-162.61603-127.923246 0-70.511293 69.692584-127.923246 155.34999-127.923246S806.428143 526.634419 806.428143 597.145713C806.428143 632.043174 789.542275 664.689186 758.943034 689.045773z" />
-                                    <path d="M337.205677 428.287028m-30.701579 0a30 30 0 1 0 61.403158 0 30 30 0 1 0-61.403158 0Z" />
-                                    <path d="M499.924046 431.357186m-30.701579 0a30 30 0 1 0 61.403158 0 30 30 0 1 0-61.403158 0Z" />
-                                    <path d="M582.818309 575.654607m-25.584649 0a25 25 0 1 0 51.169298 0 25 25 0 1 0-51.169298 0Z" />
-                                    <path d="M697.437537 575.654607m-25.584649 0a25 25 0 1 0 51.169298 0 25 25 0 1 0-51.169298 0Z" />
-                                </svg>
-                                <span style={{ wordBreak: 'break-all' }}>{basicInfo.wechat}</span>
+                            <span className="contact-item">
+                                <span className="contact-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M17 10V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2" />
+                                        <path d="M8 21h7a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2" />
+                                        <path d="M10 14h.01" />
+                                        <path d="M10 17h.01" />
+                                    </svg>
+                                </span>
+                                <span className="contact-text">{basicInfo.wechat}</span>
                             </span>
                         )}
                         {basicInfo.website && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#0071E3' }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
-                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                                </svg>
-                                <span style={{ wordBreak: 'break-all' }}>{basicInfo.website}</span>
+                            <span className="contact-item">
+                                <span className="contact-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                    </svg>
+                                </span>
+                                <span className="contact-text">{basicInfo.website}</span>
                             </span>
                         )}
                     </div>

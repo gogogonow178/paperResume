@@ -3,7 +3,7 @@ import CollapsibleSection from './CollapsibleSection'
 import RichTextEditor from './RichTextEditor'
 
 function WorkExperience() {
-    const workExperience = useResumeStore((state) => state.workExperience)
+    const workExperience = useResumeStore((state) => state.resumes[state.currentResumeId]?.data?.workExperience || [])
     const addWorkExperience = useResumeStore((state) => state.addWorkExperience)
     const updateWorkExperience = useResumeStore((state) => state.updateWorkExperience)
     const removeWorkExperience = useResumeStore((state) => state.removeWorkExperience)
@@ -15,7 +15,7 @@ function WorkExperience() {
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {workExperience.map((item) => (
                     <div key={item.id}
-                        className="card bg-white shadow-sm ring-1 ring-black/5 rounded-xl relative group transition-all hover:ring-black/10 hover:shadow-md"
+                        className="card bg-white relative group transition-all"
                         style={{ padding: '24px' }}>
 
                         {/* 顶部操作栏 */}

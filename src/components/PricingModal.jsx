@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { QRCodeSVG } from 'qrcode.react'
 
 /**
- * 价格方案弹窗
+ * 价格方案弹窗 - V2 Apple/Notion 极简重构版
  * 接入微信支付 Native 扫码支付
  */
 export default function PricingModal({ isOpen, onClose }) {
@@ -46,7 +46,7 @@ export default function PricingModal({ isOpen, onClose }) {
             credits: 50,
             desc: '海投专用，深度打磨细节',
             tag: '',
-            color: '#0071e3',
+            color: '#333333',
             pricePerCredit: '0.6'
         }
     }
@@ -171,21 +171,22 @@ export default function PricingModal({ isOpen, onClose }) {
         overlay: {
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            backdropFilter: 'blur(20px)',
             zIndex: 99999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
             overscrollBehavior: 'contain'
         },
         modal: {
             width: '800px',
             maxWidth: '95vw',
             backgroundColor: '#fff',
-            borderRadius: '24px',
-            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            borderRadius: '32px',
+            boxShadow: '0 40px 100px -20px rgba(0,0,0,0.15)',
+            border: '1px solid rgba(0,0,0,0.05)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -193,22 +194,23 @@ export default function PricingModal({ isOpen, onClose }) {
         },
         closeBtn: {
             position: 'absolute',
-            top: '20px',
-            right: '20px',
-            width: '32px',
-            height: '32px',
+            top: '25px',
+            right: '25px',
+            width: '36px',
+            height: '36px',
             borderRadius: '50%',
-            backgroundColor: '#f5f5f7',
+            backgroundColor: 'transparent',
             border: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             zIndex: 10,
-            color: '#666'
+            color: '#999',
+            transition: 'all 0.2s'
         },
         content: {
-            padding: '40px'
+            padding: '40px 32px'
         },
         header: {
             textAlign: 'center',
@@ -217,63 +219,68 @@ export default function PricingModal({ isOpen, onClose }) {
         grid: {
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '20px',
-            marginBottom: '32px'
+            gap: '24px',
+            marginBottom: '40px'
         },
         card: (tier) => ({
             position: 'relative',
-            border: selectedTier === tier.id ? `2px solid ${tier.color}` : '1px solid #e5e5e5',
-            borderRadius: '16px',
+            border: selectedTier === tier.id ? `2px solid #000` : '1px solid #f0f0f0',
+            borderRadius: '24px',
             padding: '24px',
             cursor: 'pointer',
-            backgroundColor: selectedTier === tier.id ? `${tier.color}08` : '#fff',
-            transition: 'all 0.2s ease',
-            transform: selectedTier === tier.id ? 'scale(1.02)' : 'scale(1)',
-            overflow: 'hidden'
+            backgroundColor: selectedTier === tier.id ? '#fff' : '#fff',
+            transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            transform: selectedTier === tier.id ? 'translateY(-4px)' : 'translateY(0)',
+            boxShadow: selectedTier === tier.id ? '0 20px 40px rgba(0,0,0,0.08)' : 'none',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
         }),
         tag: {
             position: 'absolute',
             top: 0,
             right: 0,
-            backgroundColor: '#ff3b30',
+            backgroundColor: '#000',
             color: '#fff',
-            fontSize: '12px',
-            fontWeight: 'bold',
+            fontSize: '11px',
+            fontWeight: '700',
             padding: '4px 12px',
             borderBottomLeftRadius: '12px'
         },
         payBtn: {
             width: '100%',
-            padding: '16px',
+            padding: '18px',
             backgroundColor: '#000',
             color: '#fff',
             fontSize: '16px',
-            fontWeight: '600',
-            borderRadius: '12px',
+            fontWeight: '700',
+            borderRadius: '16px',
             border: 'none',
             cursor: loading ? 'not-allowed' : 'pointer',
             marginTop: 'auto',
-            opacity: loading ? 0.6 : 1
+            opacity: loading ? 0.6 : 1,
+            transition: 'all 0.2s'
         },
         qrContainer: {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: '400px',
+            minHeight: '450px',
             padding: '40px'
         },
         qrBox: {
-            padding: '20px',
+            padding: '24px',
             backgroundColor: '#fff',
-            borderRadius: '16px',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.1)'
+            borderRadius: '24px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+            border: '1px solid #f0f0f0'
         },
         successIcon: {
             width: '80px',
             height: '80px',
             borderRadius: '50%',
-            backgroundColor: '#34c759',
+            backgroundColor: '#000',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -293,11 +300,11 @@ export default function PricingModal({ isOpen, onClose }) {
             marginTop: '24px',
             padding: '12px 24px',
             backgroundColor: 'transparent',
-            color: '#666',
+            color: '#999',
             fontSize: '14px',
-            border: '1px solid #e5e5e5',
-            borderRadius: '8px',
-            cursor: 'pointer'
+            border: 'none',
+            cursor: 'pointer',
+            textDecoration: 'underline'
         }
     }
 
@@ -305,8 +312,8 @@ export default function PricingModal({ isOpen, onClose }) {
         <div style={styles.overlay} onClick={handleClose}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
                 <button style={styles.closeBtn} onClick={handleClose} aria-label="关闭">
-                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
 
@@ -314,9 +321,10 @@ export default function PricingModal({ isOpen, onClose }) {
                 {step === 'tiers' && (
                     <div style={styles.content}>
                         <div style={styles.header}>
-                            <h2 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' }}>
-                                升级您的简历优化额度
+                            <h2 style={{ fontSize: '32px', fontWeight: '800', letterSpacing: '-0.02em', marginBottom: '8px', color: '#000' }}>
+                                升级服务
                             </h2>
+                            <p style={{ color: '#666', fontSize: '15px' }}>选择适合您的方案，解锁 AI 深度优化</p>
                         </div>
 
                         <div style={styles.grid}>
@@ -328,30 +336,30 @@ export default function PricingModal({ isOpen, onClose }) {
                                 >
                                     {tier.tag && <div style={styles.tag}>{tier.tag}</div>}
 
-                                    <div style={{ marginBottom: '16px' }}>
-                                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: tier.color, marginBottom: '4px' }}>
-                                            {tier.name}
+                                    <div style={{ marginBottom: '24px' }}>
+                                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#000', marginBottom: '6px' }}>
+                                            {tier.name.split(' ')[1]} <span style={{ fontSize: '16px' }}>{tier.name.split(' ')[0]}</span>
                                         </div>
-                                        <div style={{ fontSize: '13px', color: '#888' }}>
+                                        <div style={{ fontSize: '14px', color: '#888', lineHeight: '1.4' }}>
                                             {tier.desc}
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '20px' }}>
-                                        <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#000' }}>¥</span>
-                                        <span style={{ fontSize: '36px', fontWeight: '800', color: '#000', lineHeight: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '24px' }}>
+                                        <span style={{ fontSize: '18px', fontWeight: '700', color: '#000', marginRight: '2px' }}>¥</span>
+                                        <span style={{ fontSize: '44px', fontWeight: '900', color: '#000', lineHeight: 1, letterSpacing: '-0.03em' }}>
                                             {tier.price}
                                         </span>
                                     </div>
 
-                                    <div style={{ padding: '12px', backgroundColor: '#f5f5f7', borderRadius: '8px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                            <span style={{ fontSize: '13px', color: '#666' }}>包含额度</span>
-                                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#000' }}>{tier.credits} 次</span>
+                                    <div style={{ padding: '16px', backgroundColor: '#F5F5F7', borderRadius: '16px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <span style={{ fontSize: '14px', color: '#666' }}>包含额度</span>
+                                            <span style={{ fontSize: '14px', fontWeight: '700', color: '#000' }}>{tier.credits} 次</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <span style={{ fontSize: '12px', color: '#999' }}>单次成本</span>
-                                            <span style={{ fontSize: '12px', color: '#999' }}>¥{tier.pricePerCredit}/次</span>
+                                            <span style={{ fontSize: '12px', color: '#999' }}>约 ¥{tier.pricePerCredit}/次</span>
                                         </div>
                                     </div>
                                 </div>
@@ -378,17 +386,17 @@ export default function PricingModal({ isOpen, onClose }) {
                         <div style={styles.qrBox}>
                             <QRCodeSVG value={qrCodeUrl} size={200} level="M" />
                         </div>
-                        <h3 style={{ marginTop: '24px', fontSize: '18px', fontWeight: 'bold' }}>
+                        <h3 style={{ marginTop: '24px', fontSize: '20px', fontWeight: '800', color: '#000' }}>
                             请使用微信扫码支付
                         </h3>
-                        <p style={{ color: '#666', marginTop: '8px', fontSize: '14px' }}>
+                        <p style={{ color: '#666', marginTop: '8px', fontSize: '15px' }}>
                             {tiers[selectedTier].name} · ¥{tiers[selectedTier].price}
                         </p>
-                        <div style={{ display: 'flex', alignItems: 'center', marginTop: '16px', color: '#999', fontSize: '13px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px', color: '#999', fontSize: '14px' }}>
                             <div style={{
-                                width: '12px', height: '12px',
+                                width: '14px', height: '14px',
                                 border: '2px solid #999', borderTopColor: 'transparent',
-                                borderRadius: '50%', marginRight: '8px',
+                                borderRadius: '50%', marginRight: '10px',
                                 animation: 'spin 1s linear infinite'
                             }} />
                             等待支付中...
@@ -407,14 +415,14 @@ export default function PricingModal({ isOpen, onClose }) {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
-                        <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#000' }}>
+                        <h3 style={{ fontSize: '28px', fontWeight: '800', color: '#000' }}>
                             支付成功！
                         </h3>
                         <p style={{ color: '#666', marginTop: '12px', fontSize: '16px' }}>
-                            已成功充值 <strong style={{ color: '#34c759' }}>{tiers[selectedTier].credits}</strong> 次优化额度
+                            已成功充值 <strong style={{ color: '#000' }}>{tiers[selectedTier].credits}</strong> 次优化额度
                         </p>
                         <button
-                            style={{ ...styles.payBtn, width: 'auto', padding: '12px 48px', marginTop: '32px' }}
+                            style={{ ...styles.payBtn, width: 'auto', padding: '16px 60px', marginTop: '32px' }}
                             onClick={handleClose}
                         >
                             开始使用
@@ -430,7 +438,7 @@ export default function PricingModal({ isOpen, onClose }) {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </div>
-                        <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#000' }}>
+                        <h3 style={{ fontSize: '24px', fontWeight: '800', color: '#000' }}>
                             支付遇到问题
                         </h3>
                         <p style={{ color: '#ff3b30', marginTop: '12px', fontSize: '14px' }}>

@@ -181,7 +181,7 @@ function ImageCropper({ imageSrc, onConfirm, onCancel }) {
                                 height: '4px',
                                 borderRadius: '2px',
                                 appearance: 'none',
-                                background: `linear-gradient(to right, #0071E3 0%, #0071E3 ${((scale - 0.5) / 2.5) * 100}%, #E5E7EB ${((scale - 0.5) / 2.5) * 100}%, #E5E7EB 100%)`,
+                                background: `linear-gradient(to right, #000000 0%, #000000 ${((scale - 0.5) / 2.5) * 100}%, #E5E7EB ${((scale - 0.5) / 2.5) * 100}%, #E5E7EB 100%)`,
                                 cursor: 'pointer'
                             }}
                         />
@@ -217,11 +217,11 @@ function ImageCropper({ imageSrc, onConfirm, onCancel }) {
                             fontSize: '15px',
                             fontWeight: 600,
                             color: '#fff',
-                            background: 'linear-gradient(135deg, #0071E3 0%, #00C7FF 100%)',
+                            background: '#000000',
                             border: 'none',
                             borderRadius: '12px',
                             cursor: 'pointer',
-                            boxShadow: '0 4px 14px rgba(0, 113, 227, 0.3)'
+                            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)'
                         }}
                     >
                         确认
